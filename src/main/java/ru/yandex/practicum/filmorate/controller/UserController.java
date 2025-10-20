@@ -63,7 +63,7 @@ public class UserController {
         return users.values();
     }
 
-    public void verificationNewUser (User user) {
+    public void verificationNewUser(User user) {
 
         log.debug("Начало проверки соответствия данных пользователя {} всем критериям.", user.getName());
 
@@ -85,7 +85,7 @@ public class UserController {
         log.debug("Проверка данных пользователя {} прошла успешно.", user.getName());
     }
 
-    public void verificationUpdateUser (User user) {
+    public void verificationUpdateUser(User user) {
 
         log.debug("Начало проверки соответствия данных пользователя {} всем критериям.", user.getName());
 

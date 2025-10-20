@@ -61,7 +61,7 @@ public class FilmController {
         return films.values();
     }
 
-    public void verificationNewFilm (Film film) {
+    public void verificationNewFilm(Film film) {
 
         log.debug("Начало проверки соответствия данных фильма {} всем критериям.", film.getName());
 
@@ -88,7 +88,7 @@ public class FilmController {
         log.debug("Проверка данных фильма {} прошла успешно.", film.getName());
     }
 
-    public void verificationUpdateFilm (Film film) {
+    public void verificationUpdateFilm(Film film) {
 
         log.debug("Начало проверки соответствия данных фильма {} всем критериям.", film.getName());
         if (film.getName() != null && film.getName().isBlank()) {
