@@ -52,11 +52,6 @@ public class UserService {
         User user = userStorage.getUser(id);
         User friend = userStorage.getUser(friendId);
         if (user != null && friend != null) {
-            if (!user.getFriends().contains(friendId)) {
-                log.warn("Пользователь пытается удалить пользователя, который отсутствует у него в друзьях");
-                throw new ValidationException("Пользователь не может быть удален, так как не в друзьях");
-            }
-
             user.getFriends().remove(friendId);
             friend.getFriends().remove(id);
         } else if (user == null) {
