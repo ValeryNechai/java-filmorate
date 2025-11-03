@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class UserControllerTest {
     UserStorage userStorage = new InMemoryUserStorage();
     UserService userService = new UserService(userStorage);
-    UserController uc = new UserController(userStorage, userService);
+    UserController uc = new UserController(userService);
 
     @Test
     void shouldThrowException_WhenEmailNotValid() {

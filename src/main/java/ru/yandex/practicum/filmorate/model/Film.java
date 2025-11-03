@@ -21,20 +21,9 @@ public class Film {
     private String name;
     private String description;
     private LocalDate releaseDate;
-    private Set<Long> likes;
+    private Set<Long> likes = new HashSet<>();
 
     @JsonSerialize(using = DurationMinutesSerializer.class)
     @JsonDeserialize(using = DurationMinutesDeserializer.class)
     private Duration duration;
-
-    public Set<Long> getLikes() {
-        if (likes == null) {
-            return likes = new HashSet<>();
-        }
-        return likes;
-    }
-
-    public void setLikes(Set<Long> likes) {
-        this.likes = likes != null ? likes : new HashSet<>();
-    }
 }

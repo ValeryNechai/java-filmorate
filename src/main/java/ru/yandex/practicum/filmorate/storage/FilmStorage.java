@@ -12,6 +12,4 @@ public interface FilmStorage {
     Collection<Film> getAllFilms();
 
     Film getFilm(Long id);
-
-    void validateFilm(Film film);
 }

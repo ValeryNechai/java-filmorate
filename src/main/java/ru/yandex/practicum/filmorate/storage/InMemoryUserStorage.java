@@ -3,10 +3,8 @@ package ru.yandex.practicum.filmorate.storage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
-import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,7 +20,6 @@ public class InMemoryUserStorage implements UserStorage {
         if (user.getName() == null) {
             user.setName(user.getLogin());
         }
-        validateUser(user);
         user.setId(++id);
         users.put(user.getId(), user);
         log.debug("Пользователь {} успешно добавлен", user.getName());
@@ -35,7 +32,6 @@ public class InMemoryUserStorage implements UserStorage {
             if (newUser.getName() == null) {
                 newUser.setName(newUser.getLogin());
             }
-            validateUser(newUser);
             users.put(newUser.getId(), newUser);
             log.debug("Данные пользователя с id {} успешно обновлены.", newUser.getId());
             return newUser;
@@ -58,27 +54,5 @@ public class InMemoryUserStorage implements UserStorage {
             log.warn("Пользователь с id = {} не найден", id);
             throw new NotFoundException("Пользователь с id = " + id + " не найден");
         }
-    }
-
-    @Override
-    public void validateUser(User user) {
-        log.debug("Начало проверки соответствия данных пользователя {} всем критериям.", user.getName());
-
-        if (user.getEmail() == null || !user.getEmail().contains("@")) {
-            log.warn("Email пользователя {} не соответствует требованиям.", user.getName());
-            throw new ValidationException("Электронная почта не может быть пустой и должна содержать символ @.");
-        }
-
-        if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
-            log.warn("Логин пользователя {} не соответствует требованиям.", user.getName());
-            throw new ValidationException("Логин не может быть пустым и содержать пробелы.");
-        }
-
-        if (user.getBirthday() == null || user.getBirthday().isAfter(LocalDate.now())) {
-            log.warn("Дата рождения пользователя {} не соответствует требованиям.", user.getName());
-            throw new ValidationException("Дата рождения не может быть в будущем.");
-        }
-
-        log.debug("Проверка данных пользователя {} прошла успешно.", user.getName());
     }
 }

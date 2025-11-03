@@ -17,7 +17,7 @@ class FilmControllerTest {
     FilmStorage filmStorage = new InMemoryFilmStorage();
     UserStorage userStorage = new InMemoryUserStorage();
     FilmService filmService = new FilmService(filmStorage, userStorage);
-    FilmController fc = new FilmController(filmStorage, filmService);
+    FilmController fc = new FilmController(filmService);
 
     @Test
     void shouldThrowException_WhenNameIsEmpty() {

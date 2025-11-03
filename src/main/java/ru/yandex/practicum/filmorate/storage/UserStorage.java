@@ -12,6 +12,4 @@ public interface UserStorage {
     Collection<User> getAllUsers();
 
     User getUser(Long id);
-
-    void validateUser(User user);
 }
