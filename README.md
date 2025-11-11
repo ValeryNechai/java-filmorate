@@ -1,8 +1,9 @@
 # java-filmorate
 Template repository for Filmorate project.
 
+
 # Схема базы данных
-![Database Schema SQL filmorate](src/main/resources/images/Database%20Schema%20SQL%20filmorate.png)
+![DatabaseSchema](src/main/resources/images/DatabaseSchema.png)
 
 # Примеры запросов
 ### Получение всех фильмов
