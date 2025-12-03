@@ -27,7 +27,7 @@ public class UserDbStorage extends AbstractDbStorage<User> implements UserStorag
     }
 
     @Override
-    public User createUser(User user){
+    public User createUser(User user) {
         String insertUserQuery = "INSERT INTO USERS(EMAIL, LOGIN, USER_NAME, BIRTHDAY) " +
                 "VALUES (?, ?, ?, ?)";
         long id = insert(
