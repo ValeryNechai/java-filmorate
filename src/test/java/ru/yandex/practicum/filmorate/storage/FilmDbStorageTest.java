@@ -9,12 +9,10 @@ import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.db.*;
 import ru.yandex.practicum.filmorate.storage.db.mapper.FilmRowMapper;
 import ru.yandex.practicum.filmorate.storage.db.mapper.GenreRowMapper;
 import ru.yandex.practicum.filmorate.storage.db.mapper.MpaRatingRowMapper;
-import ru.yandex.practicum.filmorate.storage.db.mapper.UserRowMapper;
 
 import java.time.LocalDate;
 import java.util.Collection;
