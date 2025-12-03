@@ -1,10 +1,12 @@
-package ru.yandex.practicum.filmorate.controller;
+package ru.yandex.practicum.filmorate.controller.inMemory;
 
 import org.junit.jupiter.api.Test;
+import ru.yandex.practicum.filmorate.controller.UserController;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.storage.InMemoryUserStorage;
+import ru.yandex.practicum.filmorate.service.inMemory.InMemoryUserService;
+import ru.yandex.practicum.filmorate.storage.inMemory.InMemoryUserStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.time.LocalDate;
@@ -13,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class UserControllerTest {
     UserStorage userStorage = new InMemoryUserStorage();
-    UserService userService = new UserService(userStorage);
+    UserService userService = new InMemoryUserService(userStorage);
     UserController uc = new UserController(userService);
 
     @Test
