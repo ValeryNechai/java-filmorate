@@ -46,9 +46,9 @@ public class AbstractDbStorage<T> {
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
             for (int i = 0; i < params.length; i++) {
-                ps.setObject(i+1, params[i]);
+                ps.setObject(i + 1, params[i]);
             }
-            return ps;}, keyHolder);
+            return ps; }, keyHolder);
         Long id = keyHolder.getKeyAs(Long.class);
 
         if (id != null) {
