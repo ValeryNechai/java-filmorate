@@ -51,7 +51,7 @@ public class GenreDbStorage extends AbstractDbStorage<Genre> implements GenreSto
         return jdbc.query(FIND_BY_ALL_FILMS_QUERY, new ResultSetExtractor<Map<Long, Set<Genre>>>() {
             @Override
             public Map<Long, Set<Genre>> extractData(ResultSet rs) throws SQLException, DataAccessException {
-                Map <Long, Set<Genre>> result = new HashMap<>();
+                Map<Long, Set<Genre>> result = new HashMap<>();
 
                 while (rs.next()) {
                     Long filmId = rs.getLong("FILM_ID");
