@@ -111,7 +111,7 @@ public class FilmDbService implements FilmService {
         return filmStorage.getMpaById(id);
     }
 
-    public void validateFilm(Film film) {
+    private void validateFilm(Film film) {
         log.debug("Начало проверки соответствия данных фильма {} всем критериям.", film.getName());
 
         if (film.getName() == null || film.getName().isBlank()) {
@@ -134,7 +134,7 @@ public class FilmDbService implements FilmService {
         log.debug("Проверка данных фильма {} прошла успешно.", film.getName());
     }
 
-    public void validateLike(Long id, Long userId) {
+    private void validateLike(Long id, Long userId) {
         Film film = filmStorage.getFilm(id);
         User user = userStorage.getUser(userId);
         if (film == null) {

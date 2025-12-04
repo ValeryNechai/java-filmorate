@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.storage.db;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 public interface FriendStorage {
@@ -16,4 +17,6 @@ public interface FriendStorage {
     Set<User> getAllFriendsByUserId(Long id);
 
     Collection<User> getCommonFriends(Long id, Long otherId);
+
+    Map<Long, Set<Long>> getFriendsByAllUsers();
 }

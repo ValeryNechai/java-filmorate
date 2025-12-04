@@ -87,7 +87,7 @@ public class UserDbService implements UserService {
         return friendStorage.getCommonFriends(id, otherId);
     }
 
-    public void validateUser(User user) {
+    private void validateUser(User user) {
         log.debug("Начало проверки соответствия данных пользователя {} всем критериям.", user.getName());
 
         if (user.getEmail() == null || !user.getEmail().contains("@")) {
@@ -108,7 +108,7 @@ public class UserDbService implements UserService {
         log.debug("Проверка данных пользователя {} прошла успешно.", user.getName());
     }
 
-    public void validateFilm(Long id, Long friendId) {
+    private void validateFilm(Long id, Long friendId) {
         User user = userStorage.getUser(id);
         User friend = userStorage.getUser(friendId);
         if (user == null) {
@@ -122,7 +122,7 @@ public class UserDbService implements UserService {
         }
     }
 
-    public void validateFriend(Long id, Long friendId) {
+    private void validateFriend(Long id, Long friendId) {
         if (id == null || friendId == null) {
             throw new ValidationException("ID пользователей не могут быть null");
         }

@@ -2,11 +2,15 @@ package ru.yandex.practicum.filmorate.storage.db;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.User;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 
 @Repository
@@ -68,5 +72,23 @@ public class FriendDbStorage implements FriendStorage {
         });
 
         return new HashSet<>(commonFriends);
+    }
+
+    @Override
+    public Map<Long, Set<Long>> getFriendsByAllUsers() {
+        String findFriendsByAllUsers = "SELECT USER_ID, FRIEND_ID FROM FRIENDSHIPS";
+
+        return jdbc.query(findFriendsByAllUsers, new ResultSetExtractor<Map<Long, Set<Long>>>() {
+            @Override
+            public Map<Long, Set<Long>> extractData(ResultSet rs) throws SQLException, DataAccessException {
+                Map<Long, Set<Long>> result = new HashMap<>();
+
+                while (rs.next()) {
+                    result.computeIfAbsent(rs.getLong("USER_ID"), k -> new HashSet<>())
+                            .add(rs.getLong("FRIEND_ID"));
+                }
+                return result;
+            }
+        });
     }
 }

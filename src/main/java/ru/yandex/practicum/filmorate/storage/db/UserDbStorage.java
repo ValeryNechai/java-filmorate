@@ -11,6 +11,7 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -63,8 +64,10 @@ public class UserDbStorage extends AbstractDbStorage<User> implements UserStorag
     public Collection<User> getAllUsers() {
         String findAllUsersQuery = "SELECT * FROM USERS";
 
+        Map<Long, Set<Long>> friends = friendStorage.getFriendsByAllUsers();
+
         return findMany(findAllUsersQuery).stream()
-                .peek(user -> user.setFriends((Set<Long>) friendStorage.getAllFriendsIdByUserId(user.getId())))
+                .peek(user -> user.setFriends(friends.get(user.getId())))
                 .collect(Collectors.toList());
     }
 

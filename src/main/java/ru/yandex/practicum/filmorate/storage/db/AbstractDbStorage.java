@@ -16,7 +16,7 @@ import java.util.Optional;
 
 @RequiredArgsConstructor
 @Slf4j
-public class AbstractDbStorage<T> {
+public abstract class AbstractDbStorage<T> {
     protected final JdbcTemplate jdbc;
     protected final RowMapper<T> mapper;
 
@@ -59,7 +59,6 @@ public class AbstractDbStorage<T> {
             throw new InternalServerException("Не удалось сохранить данные.");
         }
     }
-
 
     protected void update(String query, Object... params) {
         log.debug("Выполнение обновления записи. SQL: {}", query);

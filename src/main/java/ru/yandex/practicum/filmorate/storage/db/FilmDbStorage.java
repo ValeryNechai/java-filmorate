@@ -91,10 +91,12 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
                 "LEFT OUTER JOIN MPA_RATINGS AS r ON f.RATING_ID=r.RATING_ID";
 
         List<Film> films = findMany(findAllFilmsQuery);
+        Map<Long, Set<Genre>> genres = genreStorage.getGenresByAllFilms();
+        Map<Long, Set<Long>> likes = likesStorage.getLikesByAllFilms();
 
         return films.stream()
-                .peek(film -> film.setFilmGenres(genreStorage.getGenresByFilmId(film.getId())))
-                .peek(film -> film.setLikes(likesStorage.getLikesByFilmId(film.getId())))
+                .peek(film -> film.setFilmGenres(genres.get(film.getId())))
+                .peek(film -> film.setLikes(likes.get(film.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -129,10 +131,13 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
                         "LIMIT ?";
 
         List<Film> films = findMany(findPopularFilms, count);
+        Map<Long, Set<Genre>> genres = genreStorage.getGenresByAllFilms();
+        Map<Long, Set<Long>> likes = likesStorage.getLikesByAllFilms();
+
         films.stream()
                 .forEach(film -> {
-                    film.setLikes(likesStorage.getLikesByFilmId(film.getId()));
-                    film.setFilmGenres(genreStorage.getGenresByFilmId(film.getId()));
+                    film.setLikes(likes.get(film.getId()));
+                    film.setFilmGenres(genres.get(film.getId()));
                 });
         return films;
     }
@@ -174,7 +179,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         return count != null && count > 0;
     }
 
-    public void saveFilmGenres(Film film) {
+    private void saveFilmGenres(Film film) {
         String saveQuery = "INSERT INTO FILM_GENRES (FILM_ID, GENRE_ID) VALUES (?, ?)";
         List<Object[]> batchArgs = film.getFilmGenres().stream()
                 .map(genre -> new Object[]{film.getId(), genre.getId()})
@@ -184,7 +189,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         log.debug("Жанры успешно добавлены.");
     }
 
-    public void updateFilmGenres(Film film) {
+    private void updateFilmGenres(Film film) {
         String deleteQuery = "DELETE FROM FILM_GENRES WHERE FILM_ID = ?";
         jdbc.update(deleteQuery, film.getId());
 
@@ -192,7 +197,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         log.debug("Жанры успешно обновлены.");
     }
 
-    public Integer validateMpa(Film film) {
+    private Integer validateMpa(Film film) {
         if (film.getMpaRating() == null || film.getMpaRating().getId() == null) {
             log.debug("MPA не указан, используется значение по умолчанию: 1");
             film.setMpaRating(new MpaRating(1, null));
@@ -220,7 +225,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         }
     }
 
-    public Set<Genre> validateGenres(Film film) {
+    private Set<Genre> validateGenres(Film film) {
         Set<Genre> result = new LinkedHashSet<>();
 
         if (film.getFilmGenres() == null || film.getFilmGenres().isEmpty()) {
