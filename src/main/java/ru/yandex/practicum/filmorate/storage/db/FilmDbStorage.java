@@ -131,8 +131,10 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
                         "LIMIT ?";
 
         List<Film> films = findMany(findPopularFilms, count);
-        Map<Long, Set<Genre>> genres = genreStorage.getGenresByAllFilms();
-        Map<Long, Set<Long>> likes = likesStorage.getLikesByAllFilms();
+        Set<Long> filmIds = films.stream().map(Film::getId).collect(Collectors.toSet());
+
+        Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
+        Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
 
         films.stream()
                 .forEach(film -> {

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
@@ -42,6 +43,29 @@ public class LikesDbStorage implements LikesStorage {
     @Override
     public Map<Long, Set<Long>> getLikesByAllFilms() {
         return jdbc.query(FIND_LIKES_BY_ALL_FILMS_QUERY, new ResultSetExtractor<Map<Long, Set<Long>>>() {
+            @Override
+            public Map<Long, Set<Long>> extractData(ResultSet rs) throws SQLException, DataAccessException {
+                Map<Long, Set<Long>> result = new HashMap<>();
+
+                while (rs.next()) {
+                    Long userId = rs.getLong("USER_ID");
+                    Long filmId = rs.getLong("FILM_ID");
+                    result.computeIfAbsent(filmId, k -> new HashSet<>()).add(userId);
+                }
+                return result;
+            }
+        });
+    }
+
+    @Override
+    public Map<Long, Set<Long>> getLikesByFilmIds(Set<Long> filmIds) {
+        String placeholders = filmIds.stream()
+                .map(id -> "?")
+                .collect(Collectors.joining(","));
+        String findLikesByFilmIdsQuery = String.format("SELECT FILM_ID, USER_ID FROM LIKES " +
+                                                        "WHERE FILM_ID IN (%s)", placeholders);
+
+        return jdbc.query(findLikesByFilmIdsQuery, filmIds.toArray(), new ResultSetExtractor<Map<Long, Set<Long>>>() {
             @Override
             public Map<Long, Set<Long>> extractData(ResultSet rs) throws SQLException, DataAccessException {
                 Map<Long, Set<Long>> result = new HashMap<>();

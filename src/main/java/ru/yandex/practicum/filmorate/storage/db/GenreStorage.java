@@ -15,4 +15,6 @@ public interface GenreStorage {
     Set<Genre> getGenresByFilmId(Long filmId);
 
     Map<Long, Set<Genre>> getGenresByAllFilms();
+
+    Map<Long, Set<Genre>> getGenresByFilmIds(Set<Long> filmIds);
 }
