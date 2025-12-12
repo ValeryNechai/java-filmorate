@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.service;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MpaRating;
+import ru.yandex.practicum.filmorate.model.Review;
 
 import java.util.Collection;
 
@@ -31,4 +32,22 @@ public interface FilmService {
     Collection<MpaRating> getAllMpa();
 
     MpaRating getMpaById(int id);
+
+    Review createReview(Review review);
+
+    Review updateReview(Review review);
+
+    void deleteReview(Long reviewId);
+
+    Review getReviewById(Long reviewId);
+
+    Collection<Review> getReviewsByFilmIdAndCount(Long filmId, int count);
+
+    void addLikeToReview(Long reviewId, Long userId);
+
+    void addDislikeToReview(Long reviewId, Long userId);
+
+    void deleteLikeFromReview(Long reviewId, Long userId);
+
+    void deleteDislikeFromReview(Long reviewId, Long userId);
 }
