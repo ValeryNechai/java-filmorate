@@ -87,8 +87,8 @@ public class FilmDbService implements FilmService {
     }
 
     @Override
-    public Collection<Film> getPopularFilms(int count) {
-        return filmStorage.getPopularFilms(count);
+    public Collection<Film> getPopularFilms(int count, Long genreId, Integer year) {
+        return filmStorage.getPopularFilms(count, genreId, year);
     }
 
     @Override
