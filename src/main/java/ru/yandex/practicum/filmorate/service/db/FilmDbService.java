@@ -26,7 +26,7 @@ public class FilmDbService implements FilmService {
     private final UserStorage userStorage;
     private final LikesStorage likesStorage;
     private static final int MAX_DESCRIPTION_LENGTH = 200;
-    private static final LocalDate DECEMBER_1895 = LocalDate.of(1895,12,28);
+    private static final LocalDate DECEMBER_1895 = LocalDate.of(1895, 12, 28);
 
     @Autowired
     public FilmDbService(FilmStorage filmStorage, UserStorage userStorage, LikesStorage likesStorage) {
@@ -81,7 +81,7 @@ public class FilmDbService implements FilmService {
             log.warn("Попытка удалить несуществующий лайк. Ранее лайк этому фильму не был поставлен");
             throw new ValidationException("Нельзя удалить несуществующий лайк. " +
                     "Ранее лайк этому фильму не был поставлен");
-            }
+        }
 
         likesStorage.deleteLike(id, userId);
     }
@@ -89,6 +89,11 @@ public class FilmDbService implements FilmService {
     @Override
     public Collection<Film> getPopularFilms(int count) {
         return filmStorage.getPopularFilms(count);
+    }
+
+    @Override
+    public Collection<Film> getCommonFilms(Long userId, Long friendId) {
+        return filmStorage.getCommonFilms(userId, friendId);
     }
 
     @Override
