@@ -127,13 +127,13 @@ public class FilmDbStorageTest {
 
     @Test
     public void shouldFindPopularFilm() {
-        Collection<Film> films = filmDbStorage.getPopularFilms(1, -1L, -1);
+        Collection<Film> films = filmDbStorage.getPopularFilms(1, 3, 1994);
 
         assertThat(films)
                 .isNotNull()
                 .hasSize(1)
                 .extracting(Film::getName)
-                .contains("Матрица");
+                .contains("Форрест Гамп");
     }
 
     @Test

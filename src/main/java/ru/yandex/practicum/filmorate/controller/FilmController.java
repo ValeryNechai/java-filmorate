@@ -52,7 +52,7 @@ public class FilmController {
 
     @GetMapping("/films/popular")
     public Collection<Film> getPopularFilms(@RequestParam(defaultValue = "1000") int count,
-                                            @RequestParam(required = false) Long genreId,
+                                            @RequestParam(required = false) Integer genreId,
                                             @RequestParam(required = false) Integer year) {
         return filmService.getPopularFilms(count, genreId, year);
     }
