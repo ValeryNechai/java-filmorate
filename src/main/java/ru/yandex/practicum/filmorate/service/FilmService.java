@@ -22,6 +22,8 @@ public interface FilmService {
 
     Collection<Film> getPopularFilms(int count);
 
+    Collection<Film> getCommonFilms(Long userId, Long friendId);
+
     Collection<Genre> getAllGenres();
 
     Genre getGenreById(int id);

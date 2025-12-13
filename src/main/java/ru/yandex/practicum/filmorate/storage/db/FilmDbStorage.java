@@ -123,7 +123,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
     @Override
     public Collection<Film> getPopularFilms(int count) {
         String findPopularFilms =
-                        "SELECT f.*, r.RATING_NAME, " +
+                "SELECT f.*, r.RATING_NAME, " +
                         "       (SELECT COUNT(*) FROM LIKES l WHERE l.FILM_ID = f.FILM_ID) as like_count " +
                         "FROM FILMS f " +
                         "LEFT JOIN MPA_RATINGS r ON f.RATING_ID = r.RATING_ID " +
@@ -141,6 +141,31 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
                     film.setLikes(likes.get(film.getId()));
                     film.setFilmGenres(genres.get(film.getId()));
                 });
+        return films;
+    }
+
+    @Override
+    public Collection<Film> getCommonFilms(Long userId, Long friendId) {
+        String findCommonFilms =
+                "SELECT DISTINCT f.*, r.RATING_NAME  " +
+                        "FROM PUBLIC.FILMS AS f " +
+                        "INNER JOIN PUBLIC.LIKES AS l1 ON f.FILM_ID = l1.FILM_ID " +
+                        "INNER JOIN PUBLIC.LIKES AS l2 ON f.FILM_ID = l2.FILM_ID " +
+                        "LEFT JOIN MPA_RATINGS r ON f.RATING_ID = r.RATING_ID " +
+                        "WHERE l1.USER_ID = ? " +
+                        "AND l2.USER_ID = ? " +
+                        "ORDER BY f.FILM_ID ";
+
+        List<Film> films = findMany(findCommonFilms, userId, friendId);
+        Set<Long> filmIds = films.stream().map(Film::getId).collect(Collectors.toSet());
+
+        Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
+        Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
+
+        films.forEach(film -> {
+            film.setLikes(likes.get(film.getId()));
+            film.setFilmGenres(genres.get(film.getId()));
+        });
         return films;
     }
 
