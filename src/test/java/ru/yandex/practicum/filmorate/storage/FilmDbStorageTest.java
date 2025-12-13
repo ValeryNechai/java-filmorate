@@ -9,7 +9,10 @@ import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.storage.db.*;
+import ru.yandex.practicum.filmorate.storage.db.FilmDbStorage;
+import ru.yandex.practicum.filmorate.storage.db.GenreDbStorage;
+import ru.yandex.practicum.filmorate.storage.db.LikesDbStorage;
+import ru.yandex.practicum.filmorate.storage.db.MpaRatingDbStorage;
 import ru.yandex.practicum.filmorate.storage.db.mapper.FilmRowMapper;
 import ru.yandex.practicum.filmorate.storage.db.mapper.GenreRowMapper;
 import ru.yandex.practicum.filmorate.storage.db.mapper.MpaRatingRowMapper;
@@ -124,7 +127,7 @@ public class FilmDbStorageTest {
 
     @Test
     public void shouldFindPopularFilm() {
-        Collection<Film> films = filmDbStorage.getPopularFilms(1);
+        Collection<Film> films = filmDbStorage.getPopularFilms(1, -1L, -1);
 
         assertThat(films)
                 .isNotNull()
