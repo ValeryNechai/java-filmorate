@@ -10,7 +10,7 @@ import java.util.Collection;
 
 @Repository
 public class MpaRatingDbStorage extends AbstractDbStorage<MpaRating> implements MpaRatingStorage {
-    private static final String FIND_ALL_QUERY = "SELECT * FROM MPA_RATINGS";
+    private static final String FIND_ALL_QUERY = "SELECT * FROM MPA_RATINGS GROUP BY RATING_ID";
     private static final String FIND_BY_ID_QUERY = "SELECT * FROM MPA_RATINGS WHERE RATING_ID = ?";
 
     public MpaRatingDbStorage(JdbcTemplate jdbc, RowMapper<MpaRating> mapper) {
