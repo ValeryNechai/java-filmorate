@@ -20,7 +20,7 @@ public interface FilmService {
 
     void deleteLike(Long id, Long userId);
 
-    Collection<Film> getPopularFilms(int count, Long genreId, Integer year);
+    Collection<Film> getPopularFilms(int count, Integer genreId, Integer year);
 
     Collection<Genre> getAllGenres();
 

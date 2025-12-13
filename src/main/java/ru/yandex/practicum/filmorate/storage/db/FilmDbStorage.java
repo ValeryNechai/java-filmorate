@@ -121,7 +121,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
     }
 
     @Override
-    public Collection<Film> getPopularFilms(int count, Long genreId, Integer year) {
+    public Collection<Film> getPopularFilms(int count, Integer genreId, Integer year) {
 
         List<Object> params = new ArrayList<>();
         StringBuilder findPopularFilms = new StringBuilder(
