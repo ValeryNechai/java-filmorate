@@ -9,35 +9,39 @@ import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.db.*;
 import ru.yandex.practicum.filmorate.storage.db.mapper.*;
-import ru.yandex.practicum.filmorate.storage.db.UserDbStorage;
 
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @JdbcTest
 @Import({GenreDbStorage.class, GenreRowMapper.class, FilmDbStorage.class, FilmRowMapper.class,
         MpaRatingRowMapper.class, MpaRatingDbStorage.class, LikesDbStorage.class, UserRowMapper.class,
-        UserDbStorage.class, FriendDbStorage.class, ReviewDbStorage.class, ReviewRowMapper.class})
+        UserDbStorage.class, FriendDbStorage.class, ReviewDbStorage.class, ReviewRowMapper.class,
+        ReviewRatingsDbStorage.class})
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
-public class LikesDbStorageTest {
+public class ReviewRatingsDbStorageTest {
     private final LikesDbStorage likesDbStorage;
     private final FilmDbStorage filmDbStorage;
     private final MpaRatingDbStorage mpaRatingDbStorage;
     private final GenreDbStorage genreDbStorage;
     private final UserDbStorage userDbStorage;
+    private final ReviewDbStorage reviewDbStorage;
+    private final ReviewRatingsDbStorage reviewRatingsDbStorage;
 
     private Film createdFilm1;
     private User createdUser1;
+    private Review createdReview1;
 
     @BeforeEach
-    public void createFilmsAndUsers() {
+    public void createReviews() {
         Film film1 = new Film();
         film1.setName("Матрица");
         film1.setDescription("Хакер Нео узнает, что его мир - виртуальная реальность");
@@ -52,6 +56,7 @@ public class LikesDbStorageTest {
 
         createdFilm1 = filmDbStorage.createFilm(film1);
 
+
         User testUser1 = new User();
         testUser1.setEmail("ivan.petrov@mail.ru");
         testUser1.setLogin("ivan_petrov");
@@ -59,35 +64,53 @@ public class LikesDbStorageTest {
         testUser1.setBirthday(LocalDate.of(1990, 5, 15));
 
         createdUser1 = userDbStorage.createUser(testUser1);
+
+        Review testReview1 = new Review();
+        testReview1.setContent("Отличный фильм! Особенно понравились спецэффекты и философская составляющая.");
+        testReview1.setIsPositive(true);
+        testReview1.setUserId(createdUser1.getId());
+        testReview1.setFilmId(createdFilm1.getId());
+        testReview1.setUseful(10);
+
+        createdReview1 = reviewDbStorage.createReview(testReview1);
     }
 
     @Test
-    public void shouldAddLike() {
-        likesDbStorage.addLike(createdFilm1.getId(), createdUser1.getId());
+    public void shouldAddLikeToReview() {
+        reviewRatingsDbStorage.addLikeToReview(createdReview1.getReviewId(), createdUser1.getId());
 
-        assertThat(filmDbStorage.getFilm(createdFilm1.getId()).getLikes())
+        assertThat(reviewDbStorage.getReviewById(createdReview1.getReviewId()))
                 .isNotNull()
-                .hasSize(1);
+                .hasFieldOrPropertyWithValue("useful", 1);
     }
 
     @Test
-    public void shouldDeleteLike() {
-        likesDbStorage.addLike(createdFilm1.getId(), createdUser1.getId());
-        likesDbStorage.deleteLike(createdFilm1.getId(), createdUser1.getId());
+    public void shouldDeleteLikeFromReview() {
+        reviewRatingsDbStorage.addLikeToReview(createdReview1.getReviewId(), createdUser1.getId());
+        reviewRatingsDbStorage.deleteLikeFromReview(createdReview1.getReviewId(), createdUser1.getId());
 
-        assertThat(filmDbStorage.getFilm(createdFilm1.getId()).getLikes())
+        assertThat(reviewDbStorage.getReviewById(createdReview1.getReviewId()))
                 .isNotNull()
-                .hasSize(0);
+                .hasFieldOrPropertyWithValue("useful", 0);
     }
 
     @Test
-    public void shouldFindLikesByFilmId() {
-        likesDbStorage.addLike(createdFilm1.getId(), createdUser1.getId());
-        Set<Long> likes = likesDbStorage.getLikesByFilmId(createdFilm1.getId());
+    public void shouldAddDislikeToReview() {
+        reviewRatingsDbStorage.addDislikeToReview(createdReview1.getReviewId(), createdUser1.getId());
 
-        assertThat(likes)
+        assertThat(reviewDbStorage.getReviewById(createdReview1.getReviewId()))
                 .isNotNull()
-                .hasSize(1)
-                .contains(createdUser1.getId());
+                .hasFieldOrPropertyWithValue("useful", -1);
+    }
+
+    @Test
+    public void shouldDeleteDislikeFromReview() {
+        reviewRatingsDbStorage.addDislikeToReview(createdReview1.getReviewId(), createdUser1.getId());
+        reviewRatingsDbStorage.deleteDislikeFromReview(createdReview1.getReviewId(), createdUser1.getId());
+
+        assertThat(reviewDbStorage.getReviewById(createdReview1.getReviewId()))
+                .isNotNull()
+                .hasFieldOrPropertyWithValue("useful", 0);
     }
 }
+

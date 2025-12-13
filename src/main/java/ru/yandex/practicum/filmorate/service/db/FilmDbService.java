@@ -6,14 +6,13 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.MpaRating;
-import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import ru.yandex.practicum.filmorate.storage.db.LikesStorage;
+import ru.yandex.practicum.filmorate.storage.db.ReviewRatingsStorage;
+import ru.yandex.practicum.filmorate.storage.db.ReviewStorage;
 
 import java.time.LocalDate;
 import java.util.Collection;
@@ -25,14 +24,20 @@ public class FilmDbService implements FilmService {
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
     private final LikesStorage likesStorage;
+    private final ReviewStorage reviewStorage;
+    private final ReviewRatingsStorage reviewRatingsStorage;
     private static final int MAX_DESCRIPTION_LENGTH = 200;
     private static final LocalDate DECEMBER_1895 = LocalDate.of(1895,12,28);
 
     @Autowired
-    public FilmDbService(FilmStorage filmStorage, UserStorage userStorage, LikesStorage likesStorage) {
+    public FilmDbService(FilmStorage filmStorage, UserStorage userStorage,
+                         LikesStorage likesStorage, ReviewStorage reviewStorage,
+                         ReviewRatingsStorage reviewRatingsStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.likesStorage = likesStorage;
+        this.reviewStorage = reviewStorage;
+        this.reviewRatingsStorage = reviewRatingsStorage;
     }
 
     @Override
@@ -111,6 +116,70 @@ public class FilmDbService implements FilmService {
         return filmStorage.getMpaById(id);
     }
 
+    @Override
+    public Review createReview(Review review) {
+        validateReview(review);
+        return reviewStorage.createReview(review);
+    }
+
+    @Override
+    public Review updateReview(Review newReview) {
+        if (!reviewStorage.existsById(newReview.getReviewId())) {
+            throw new NotFoundException("Отзыв с id = " + newReview.getReviewId() + " не найден.");
+        }
+        validateReview(newReview);
+        return reviewStorage.updateReview(newReview);
+    }
+
+    @Override
+    public void deleteReview(Long reviewId) {
+        if (!reviewStorage.existsById(reviewId)) {
+            throw new NotFoundException("Отзыв с id = " + reviewId + " не найден.");
+        }
+        validateReview(reviewStorage.getReviewById(reviewId));
+        reviewStorage.deleteReview(reviewId);
+    }
+
+    @Override
+    public Review getReviewById(Long reviewId) {
+        return reviewStorage.getReviewById(reviewId);
+    }
+
+    @Override
+    public Collection<Review> getReviewsByFilmIdAndCount(Long filmId, int count) {
+        if (filmId != null) {
+            if (!filmStorage.existsById(filmId)) {
+                throw new NotFoundException("Фильм с id = " + filmId + " не найден.");
+            }
+            return reviewStorage.getReviewsByFilmIdAndCount(filmId, count);
+        }
+        return reviewStorage.getReviewsByAllFilmsAndCount(count);
+    }
+
+    @Override
+    public void addLikeToReview(Long reviewId, Long userId) {
+        validateReviewReaction(reviewId, userId);
+        reviewRatingsStorage.addLikeToReview(reviewId, userId);
+    }
+
+    @Override
+    public void addDislikeToReview(Long reviewId, Long userId) {
+        validateReviewReaction(reviewId, userId);
+        reviewRatingsStorage.addDislikeToReview(reviewId, userId);
+    }
+
+    @Override
+    public void deleteLikeFromReview(Long reviewId, Long userId) {
+        validateReviewReaction(reviewId, userId);
+        reviewRatingsStorage.deleteLikeFromReview(reviewId, userId);
+    }
+
+    @Override
+    public void deleteDislikeFromReview(Long reviewId, Long userId) {
+        validateReviewReaction(reviewId, userId);
+        reviewRatingsStorage.deleteDislikeFromReview(reviewId, userId);
+    }
+
     private void validateFilm(Film film) {
         log.debug("Начало проверки соответствия данных фильма {} всем критериям.", film.getName());
 
@@ -140,6 +209,43 @@ public class FilmDbService implements FilmService {
         if (film == null) {
             log.warn("Фильм с id = {} не найден", id);
             throw new NotFoundException("Фильм с id = " + id + " не найден");
+        } else if (user == null) {
+            log.warn("Пользователь с userId = {} не найден", userId);
+            throw new NotFoundException("Пользователь с userId = " + userId + " не найден");
+        }
+    }
+
+    private void validateReview(Review review) {
+        if (review == null) {
+            log.warn("Отзыв не найден");
+            throw new NotFoundException("Отзыв не найден");
+        }
+        if (review.getFilmId() == null) {
+            throw new ValidationException("ID фильма не может быть null");
+        }
+        if (review.getUserId() == null) {
+            throw new ValidationException("ID пользователя не может быть null");
+        }
+        try {
+            filmStorage.getFilm(review.getFilmId());
+        } catch (NotFoundException e) {
+            log.warn("Фильм с id = {} не найден", review.getFilmId());
+            throw new NotFoundException("Фильм с id = " + review.getFilmId() + " не найден");
+        }
+        try {
+            userStorage.getUser(review.getUserId());
+        } catch (NotFoundException e) {
+            log.warn("Пользователь с id = {} не найден", review.getUserId());
+            throw new NotFoundException("Пользователь с id = " + review.getUserId() + " не найден");
+        }
+    }
+
+    private void validateReviewReaction(Long reviewId, Long userId) {
+        Review review = reviewStorage.getReviewById(reviewId);
+        User user = userStorage.getUser(userId);
+        if (review == null) {
+            log.warn("Отзыв с id = {} не найден", reviewId);
+            throw new NotFoundException("Отзыв с id = " + reviewId + " не найден");
         } else if (user == null) {
             log.warn("Пользователь с userId = {} не найден", userId);
             throw new NotFoundException("Пользователь с userId = " + userId + " не найден");
