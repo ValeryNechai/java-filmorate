@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import({GenreDbStorage.class, GenreRowMapper.class, FilmDbStorage.class, FilmRowMapper.class,
         MpaRatingRowMapper.class, MpaRatingDbStorage.class, LikesDbStorage.class, UserRowMapper.class,
         UserDbStorage.class, FriendDbStorage.class, ReviewDbStorage.class, ReviewRowMapper.class,
-        ReviewRatingsDbStorage.class})
+        ReviewRatingsDbStorage.class, FeedDbStorage.class, FeedRowMapper.class})
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class ReviewDbStorageTest {

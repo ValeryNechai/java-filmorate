@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Review;
@@ -21,13 +23,15 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @JdbcTest
+@ActiveProfiles("test")
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({GenreDbStorage.class, GenreRowMapper.class, FilmDbStorage.class, FilmRowMapper.class,
         MpaRatingRowMapper.class, MpaRatingDbStorage.class, LikesDbStorage.class, UserRowMapper.class,
         UserDbStorage.class, FriendDbStorage.class, ReviewDbStorage.class, ReviewRowMapper.class,
-        ReviewRatingsDbStorage.class})
-@AutoConfigureTestDatabase
+        ReviewRatingsDbStorage.class, FeedDbStorage.class, FeedRowMapper.class})
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class ReviewRatingsDbStorageTest {
+    private final JdbcTemplate jdbcTemplate;
     private final LikesDbStorage likesDbStorage;
     private final FilmDbStorage filmDbStorage;
     private final MpaRatingDbStorage mpaRatingDbStorage;
@@ -42,6 +46,15 @@ public class ReviewRatingsDbStorageTest {
 
     @BeforeEach
     public void createReviews() {
+        jdbcTemplate.execute("DELETE FROM REVIEW_RATINGS");
+        jdbcTemplate.execute("DELETE FROM REVIEWS");
+        jdbcTemplate.execute("DELETE FROM LIKES");
+        jdbcTemplate.execute("DELETE FROM FILM_GENRES");
+        jdbcTemplate.execute("DELETE FROM FRIENDSHIPS");
+        jdbcTemplate.execute("DELETE FROM FEEDS");
+        jdbcTemplate.execute("DELETE FROM FILMS");
+        jdbcTemplate.execute("DELETE FROM USERS");
+
         Film film1 = new Film();
         film1.setName("Матрица");
         film1.setDescription("Хакер Нео узнает, что его мир - виртуальная реальность");
@@ -55,7 +68,6 @@ public class ReviewRatingsDbStorageTest {
         film1.setFilmGenres(genres1);
 
         createdFilm1 = filmDbStorage.createFilm(film1);
-
 
         User testUser1 = new User();
         testUser1.setEmail("ivan.petrov@mail.ru");
@@ -113,4 +125,3 @@ public class ReviewRatingsDbStorageTest {
                 .hasFieldOrPropertyWithValue("useful", 0);
     }
 }
-
