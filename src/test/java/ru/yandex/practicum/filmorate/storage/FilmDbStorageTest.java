@@ -16,6 +16,7 @@ import ru.yandex.practicum.filmorate.storage.db.MpaRatingDbStorage;
 import ru.yandex.practicum.filmorate.storage.db.mapper.FilmRowMapper;
 import ru.yandex.practicum.filmorate.storage.db.mapper.GenreRowMapper;
 import ru.yandex.practicum.filmorate.storage.db.mapper.MpaRatingRowMapper;
+import ru.yandex.practicum.filmorate.storage.db.mapper.ReviewRowMapper;
 
 import java.time.LocalDate;
 import java.util.Collection;
@@ -27,7 +28,7 @@ import static org.assertj.core.api.Assertions.*;
 @JdbcTest
 @Import({GenreDbStorage.class, GenreRowMapper.class, FilmDbStorage.class, FilmRowMapper.class,
         MpaRatingRowMapper.class, MpaRatingDbStorage.class, LikesDbStorage.class,
-        LikesDbStorage.class})
+        LikesDbStorage.class, ReviewDbStorage.class, ReviewRowMapper.class})
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class FilmDbStorageTest {

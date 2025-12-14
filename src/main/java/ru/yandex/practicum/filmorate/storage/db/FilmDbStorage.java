@@ -21,17 +21,19 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
     private final GenreStorage genreStorage;
     private final MpaRatingStorage mpaRatingStorage;
     private final LikesStorage likesStorage;
+    private final ReviewStorage reviewStorage;
     private static final int MIN_MPA_ID = 1;
     private static final int MAX_MPA_ID = 5;
     private static final int MIN_GENRE_ID = 1;
     private static final int MAX_GENRE_ID = 6;
 
     public FilmDbStorage(JdbcTemplate jdbc, RowMapper<Film> mapper, GenreStorage genreStorage,
-                         MpaRatingStorage mpaRatingStorage, LikesStorage likesStorage) {
+                         MpaRatingStorage mpaRatingStorage, LikesStorage likesStorage, ReviewStorage reviewStorage) {
         super(jdbc, mapper);
         this.genreStorage = genreStorage;
         this.mpaRatingStorage = mpaRatingStorage;
         this.likesStorage = likesStorage;
+        this.reviewStorage = reviewStorage;
     }
 
     @Override
@@ -93,10 +95,12 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         List<Film> films = findMany(findAllFilmsQuery);
         Map<Long, Set<Genre>> genres = genreStorage.getGenresByAllFilms();
         Map<Long, Set<Long>> likes = likesStorage.getLikesByAllFilms();
+        Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByAllFilms();
 
         return films.stream()
                 .peek(film -> film.setFilmGenres(genres.get(film.getId())))
                 .peek(film -> film.setLikes(likes.get(film.getId())))
+                .peek(film -> film.setReviews(reviews.get(film.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -151,10 +155,12 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
 
         Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
         Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
+        Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByFilmIds(filmIds);
 
         films.forEach(film -> {
                     film.setLikes(likes.get(film.getId()));
                     film.setFilmGenres(genres.get(film.getId()));
+                    film.setReviews(reviews.get(film.getId()));
                 });
         return films;
     }
