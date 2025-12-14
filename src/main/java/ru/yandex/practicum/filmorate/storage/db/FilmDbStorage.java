@@ -166,6 +166,33 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
     }
 
     @Override
+    public Collection<Film> getCommonFilms(Long userId, Long friendId) {
+        String findCommonFilms =
+                "SELECT DISTINCT f.*, r.RATING_NAME  " +
+                        "FROM PUBLIC.FILMS AS f " +
+                        "INNER JOIN PUBLIC.LIKES AS l1 ON f.FILM_ID = l1.FILM_ID " +
+                        "INNER JOIN PUBLIC.LIKES AS l2 ON f.FILM_ID = l2.FILM_ID " +
+                        "LEFT JOIN MPA_RATINGS r ON f.RATING_ID = r.RATING_ID " +
+                        "WHERE l1.USER_ID = ? " +
+                        "AND l2.USER_ID = ? " +
+                        "ORDER BY f.FILM_ID ";
+
+        List<Film> films = findMany(findCommonFilms, userId, friendId);
+        Set<Long> filmIds = films.stream().map(Film::getId).collect(Collectors.toSet());
+
+        Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
+        Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
+        Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByFilmIds(filmIds);
+
+        films.forEach(film -> {
+            film.setLikes(likes.get(film.getId()));
+            film.setFilmGenres(genres.get(film.getId()));
+            film.setReviews(reviews.get(film.getId()));
+        });
+        return films;
+    }
+
+    @Override
     public Collection<Genre> getAllGenres() {
         return genreStorage.getAllGenres();
     }
