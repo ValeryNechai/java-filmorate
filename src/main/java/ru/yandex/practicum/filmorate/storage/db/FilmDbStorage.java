@@ -88,7 +88,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
     @Override
     public Collection<Film> getAllFilms() {
         String findAllFilmsQuery = "SELECT f.*, r.RATING_NAME FROM FILMS AS f " +
-                "LEFT OUTER JOIN MPA_RATINGS AS r ON f.RATING_ID=r.RATING_ID";
+                "LEFT OUTER JOIN MPA_RATINGS AS r ON f.RATING_ID=r.RATING_ID ORDER BY FILM_ID";
 
         List<Film> films = findMany(findAllFilmsQuery);
         Map<Long, Set<Genre>> genres = genreStorage.getGenresByAllFilms();

@@ -60,7 +60,7 @@ public class UserDbStorage extends AbstractDbStorage<User> implements UserStorag
 
     @Override
     public Collection<User> getAllUsers() {
-        String findAllUsersQuery = "SELECT * FROM USERS";
+        String findAllUsersQuery = "SELECT * FROM USERS ORDER BY USER_ID";
 
         Map<Long, Set<Long>> friends = friendStorage.getFriendsByAllUsers();
 
