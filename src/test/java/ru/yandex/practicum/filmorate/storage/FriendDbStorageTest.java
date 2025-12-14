@@ -8,8 +8,10 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.db.FeedDbStorage;
 import ru.yandex.practicum.filmorate.storage.db.FriendDbStorage;
 import ru.yandex.practicum.filmorate.storage.db.UserDbStorage;
+import ru.yandex.practicum.filmorate.storage.db.mapper.FeedRowMapper;
 import ru.yandex.practicum.filmorate.storage.db.mapper.UserRowMapper;
 
 import java.time.LocalDate;
@@ -20,7 +22,8 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @JdbcTest
-@Import({FriendDbStorage.class, UserRowMapper.class, UserDbStorage.class})
+@Import({FriendDbStorage.class, UserRowMapper.class, UserDbStorage.class,
+        FeedDbStorage.class, FeedRowMapper.class})
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class FriendDbStorageTest {

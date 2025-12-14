@@ -5,12 +5,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.model.EventType;
+import ru.yandex.practicum.filmorate.model.Operation;
 
 @Repository
 @RequiredArgsConstructor
 @Slf4j
 public class ReviewRatingsDbStorage implements ReviewRatingsStorage {
     private final JdbcTemplate jdbc;
+    private final FeedStorage feedStorage;
     private static final String UPDATE_USEFUL_QUERY = "UPDATE REVIEWS SET USEFUL = USEFUL + ? WHERE REVIEW_ID = ?";
     private static final String GET_REACTION_QUERY =
             "SELECT IS_LIKE FROM REVIEW_RATINGS WHERE REVIEW_ID = ? AND USER_ID = ?";
@@ -24,21 +27,29 @@ public class ReviewRatingsDbStorage implements ReviewRatingsStorage {
     @Override
     public void addLikeToReview(Long reviewId, Long userId) {
         addReactionToReview(reviewId, userId, true);
+        feedStorage.createFeed(userId, EventType.LIKE, Operation.ADD, reviewId);
+        log.debug("Оценка отзыва успешно добавлена в базу данных.");
     }
 
     @Override
     public void addDislikeToReview(Long reviewId, Long userId) {
         addReactionToReview(reviewId, userId, false);
+        feedStorage.createFeed(userId, EventType.LIKE, Operation.ADD, reviewId);
+        log.debug("Оценка отзыва успешно добавлена в базу данных.");
     }
 
     @Override
     public void deleteLikeFromReview(Long reviewId, Long userId) {
         deleteReactionFromReview(reviewId, userId, true);
+        feedStorage.createFeed(userId, EventType.LIKE, Operation.REMOVE, reviewId);
+        log.debug("Оценка отзыва успешно удалена из базы данных.");
     }
 
     @Override
     public void deleteDislikeFromReview(Long reviewId, Long userId) {
         deleteReactionFromReview(reviewId, userId, false);
+        feedStorage.createFeed(userId, EventType.LIKE, Operation.REMOVE, reviewId);
+        log.debug("Оценка отзыва успешно удалена из базы данных.");
     }
 
     private void updateUseful(Long reviewId, int delta) {
