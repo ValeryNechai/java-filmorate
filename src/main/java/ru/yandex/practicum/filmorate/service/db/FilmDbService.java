@@ -243,6 +243,14 @@ public class FilmDbService implements FilmService {
             log.warn("Пользователь с id = {} не найден", review.getUserId());
             throw new NotFoundException("Пользователь с id = " + review.getUserId() + " не найден");
         }
+        if (review.getContent() == null) {
+            log.warn("Содержание отзыва не может быть пустым.");
+            throw new ValidationException("Содержание отзыва не может быть пустым.");
+        }
+        if (review.getIsPositive() == null) {
+            log.warn("Тип отзыва не может быть пустым.");
+            throw new ValidationException("Тип отзыва не может быть пустым.");
+        }
     }
 
     private void validateReviewReaction(Long reviewId, Long userId) {
