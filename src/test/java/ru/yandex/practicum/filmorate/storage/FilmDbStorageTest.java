@@ -13,6 +13,7 @@ import ru.yandex.practicum.filmorate.storage.db.*;
 import ru.yandex.practicum.filmorate.storage.db.mapper.FilmRowMapper;
 import ru.yandex.practicum.filmorate.storage.db.mapper.GenreRowMapper;
 import ru.yandex.practicum.filmorate.storage.db.mapper.MpaRatingRowMapper;
+import ru.yandex.practicum.filmorate.storage.db.mapper.ReviewRowMapper;
 
 import java.time.LocalDate;
 import java.util.Collection;
@@ -24,7 +25,7 @@ import static org.assertj.core.api.Assertions.*;
 @JdbcTest
 @Import({GenreDbStorage.class, GenreRowMapper.class, FilmDbStorage.class, FilmRowMapper.class,
         MpaRatingRowMapper.class, MpaRatingDbStorage.class, LikesDbStorage.class,
-        LikesDbStorage.class})
+        LikesDbStorage.class, ReviewDbStorage.class, ReviewRowMapper.class})
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class FilmDbStorageTest {
@@ -123,13 +124,13 @@ public class FilmDbStorageTest {
 
     @Test
     public void shouldFindPopularFilm() {
-        Collection<Film> films = filmDbStorage.getPopularFilms(1);
+        Collection<Film> films = filmDbStorage.getPopularFilms(1, 3, 1994);
 
         assertThat(films)
                 .isNotNull()
                 .hasSize(1)
                 .extracting(Film::getName)
-                .contains("Матрица");
+                .contains("Форрест Гамп");
     }
 
     @Test
