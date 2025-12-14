@@ -58,7 +58,7 @@ public class UserController {
     public Collection<User> getCommonFriends(@PathVariable Long id, @PathVariable Long otherId) {
         return userService.getCommonFriends(id, otherId);
     }
-    @GetMapping("/{id}/recomendations")
+    @GetMapping("/{id}/recommendations")
     public Collection<Film> getRecommendations(@PathVariable Long id){
         return userService.getRecommendations(id);
     }
