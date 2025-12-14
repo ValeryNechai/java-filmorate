@@ -125,24 +125,39 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
     }
 
     @Override
-    public Collection<Film> getPopularFilms(int count) {
-        String findPopularFilms =
-                "SELECT f.*, r.RATING_NAME, " +
-                        "       (SELECT COUNT(*) FROM LIKES l WHERE l.FILM_ID = f.FILM_ID) as like_count " +
-                        "FROM FILMS f " +
-                        "LEFT JOIN MPA_RATINGS r ON f.RATING_ID = r.RATING_ID " +
-                        "ORDER BY like_count DESC " +
-                        "LIMIT ?";
+    public Collection<Film> getPopularFilms(int count, Integer genreId, Integer year) {
 
-        List<Film> films = findMany(findPopularFilms, count);
+        List<Object> params = new ArrayList<>();
+        StringBuilder findPopularFilms = new StringBuilder(
+                "SELECT f.*, r.RATING_NAME, " +
+                        "(SELECT COUNT(*) " +
+                        "FROM PUBLIC.LIKES l " +
+                        "WHERE ");
+        if (genreId != null) {
+            findPopularFilms.append("f.FILM_ID IN (SELECT FILM_ID FROM PUBLIC.FILM_GENRES WHERE GENRE_ID = ?) AND ");
+            params.add(genreId);
+        }
+        if (year != null) {
+            findPopularFilms.append("EXTRACT(YEAR FROM CAST(f.RELEASE_DATE AS DATE)) = ? AND ");
+            params.add(year);
+        }
+
+        findPopularFilms.append("l.FILM_ID = f.FILM_ID) as like_count " +
+                "FROM PUBLIC.FILMS f " +
+                "LEFT JOIN PUBLIC.MPA_RATINGS r ON f.RATING_ID = r.RATING_ID " +
+                "ORDER BY like_count DESC, f.FILM_ID DESC " +
+                "LIMIT ?");
+        params.add(count);
+
+        List<Film> films = findMany(String.valueOf(findPopularFilms), params.toArray());
+
         Set<Long> filmIds = films.stream().map(Film::getId).collect(Collectors.toSet());
 
         Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
         Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
         Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByFilmIds(filmIds);
 
-        films.stream()
-                .forEach(film -> {
+        films.forEach(film -> {
                     film.setLikes(likes.get(film.getId()));
                     film.setFilmGenres(genres.get(film.getId()));
                     film.setReviews(reviews.get(film.getId()));
