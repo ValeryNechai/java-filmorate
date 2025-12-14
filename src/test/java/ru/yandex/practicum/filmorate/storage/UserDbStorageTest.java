@@ -1,11 +1,13 @@
 package ru.yandex.practicum.filmorate.storage;
 
 import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.db.FeedDbStorage;
 import ru.yandex.practicum.filmorate.storage.db.FriendDbStorage;
@@ -25,6 +27,7 @@ import static org.assertj.core.api.Assertions.*;
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class UserDbStorageTest {
     private final UserDbStorage userDbStorage;
+    private final JdbcTemplate jdbcTemplate;
 
     @Test
     public void shouldCreateUser() {
@@ -105,5 +108,17 @@ public class UserDbStorageTest {
                 .hasSize(2)
                 .extracting(User::getName)
                 .contains("Иван Петров", "Мария Сидорова");
+    }
+
+    @AfterEach
+    public void clean() {
+        jdbcTemplate.execute("DELETE FROM REVIEW_RATINGS");
+        jdbcTemplate.execute("DELETE FROM REVIEWS");
+        jdbcTemplate.execute("DELETE FROM LIKES");
+        jdbcTemplate.execute("DELETE FROM FILM_GENRES");
+        jdbcTemplate.execute("DELETE FROM FRIENDSHIPS");
+        jdbcTemplate.execute("DELETE FROM FEEDS");
+        jdbcTemplate.execute("DELETE FROM FILMS");
+        jdbcTemplate.execute("DELETE FROM USERS");
     }
 }

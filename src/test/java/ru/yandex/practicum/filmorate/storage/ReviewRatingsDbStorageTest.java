@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.storage;
 
 import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -123,5 +124,17 @@ public class ReviewRatingsDbStorageTest {
         assertThat(reviewDbStorage.getReviewById(createdReview1.getReviewId()))
                 .isNotNull()
                 .hasFieldOrPropertyWithValue("useful", 0);
+    }
+
+    @AfterEach
+    public void clean() {
+        jdbcTemplate.execute("DELETE FROM REVIEW_RATINGS");
+        jdbcTemplate.execute("DELETE FROM REVIEWS");
+        jdbcTemplate.execute("DELETE FROM LIKES");
+        jdbcTemplate.execute("DELETE FROM FILM_GENRES");
+        jdbcTemplate.execute("DELETE FROM FRIENDSHIPS");
+        jdbcTemplate.execute("DELETE FROM FEEDS");
+        jdbcTemplate.execute("DELETE FROM FILMS");
+        jdbcTemplate.execute("DELETE FROM USERS");
     }
 }

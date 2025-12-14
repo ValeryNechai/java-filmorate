@@ -1,12 +1,14 @@
 package ru.yandex.practicum.filmorate.storage;
 
 import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Review;
@@ -29,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class ReviewDbStorageTest {
+    private final JdbcTemplate jdbcTemplate;
     private final LikesDbStorage likesDbStorage;
     private final FilmDbStorage filmDbStorage;
     private final MpaRatingDbStorage mpaRatingDbStorage;
@@ -148,5 +151,17 @@ public class ReviewDbStorageTest {
         assertThat(reviewsByFilms)
                 .isNotNull()
                 .hasSize(1);
+    }
+
+    @AfterEach
+    public void clean() {
+        jdbcTemplate.execute("DELETE FROM REVIEW_RATINGS");
+        jdbcTemplate.execute("DELETE FROM REVIEWS");
+        jdbcTemplate.execute("DELETE FROM LIKES");
+        jdbcTemplate.execute("DELETE FROM FILM_GENRES");
+        jdbcTemplate.execute("DELETE FROM FRIENDSHIPS");
+        jdbcTemplate.execute("DELETE FROM FEEDS");
+        jdbcTemplate.execute("DELETE FROM FILMS");
+        jdbcTemplate.execute("DELETE FROM USERS");
     }
 }
