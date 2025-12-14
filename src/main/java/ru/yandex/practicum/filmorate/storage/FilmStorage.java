@@ -26,4 +26,6 @@ public interface FilmStorage {
     MpaRating getMpaById(int id);
 
     boolean existsById(Long id);
+
+    Collection<Film> getRecommendations(Long userId);
 }

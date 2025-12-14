@@ -6,8 +6,10 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
+import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import ru.yandex.practicum.filmorate.storage.db.FriendStorage;
 
@@ -21,11 +23,13 @@ import java.util.Set;
 public class UserDbService implements UserService {
     private final UserStorage userStorage;
     private final FriendStorage friendStorage;
+    private final FilmStorage filmStorage;
 
     @Autowired
-    public UserDbService(UserStorage userStorage, FriendStorage friendStorage) {
+    public UserDbService(UserStorage userStorage, FriendStorage friendStorage, FilmStorage filmStorage) {
         this.userStorage = userStorage;
         this.friendStorage = friendStorage;
+        this.filmStorage = filmStorage;
     }
 
     @Override
@@ -85,6 +89,17 @@ public class UserDbService implements UserService {
     public Collection<User> getCommonFriends(Long id, Long otherId) {
         validateFriend(id, otherId);
         return friendStorage.getCommonFriends(id, otherId);
+    }
+
+    @Override
+    public Collection<Film> getRecommendations(Long id) {
+        if (id == null) {
+            throw new ValidationException("id не может быть null");
+        }
+        if (!userStorage.existsById(id)) {
+            throw new NotFoundException("Пользователь с id = " + id + " не найден");
+        }
+        return filmStorage.getRecommendations(id);
     }
 
     private void validateUser(User user) {
