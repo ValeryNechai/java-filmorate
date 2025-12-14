@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.*;
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class MpaRatingDbStorageTest {
-    private final JdbcTemplate jdbcTemplate;
     private final MpaRatingDbStorage mpaRatingDbStorage;
 
     @Test
@@ -39,17 +38,5 @@ public class MpaRatingDbStorageTest {
                 .hasSize(5)
                 .extracting(MpaRating::getName)
                 .contains("G", "PG", "PG-13", "R", "NC-17");
-    }
-
-    @AfterEach
-    public void clean() {
-        jdbcTemplate.execute("DELETE FROM REVIEW_RATINGS");
-        jdbcTemplate.execute("DELETE FROM REVIEWS");
-        jdbcTemplate.execute("DELETE FROM LIKES");
-        jdbcTemplate.execute("DELETE FROM FILM_GENRES");
-        jdbcTemplate.execute("DELETE FROM FRIENDSHIPS");
-        jdbcTemplate.execute("DELETE FROM FEEDS");
-        jdbcTemplate.execute("DELETE FROM FILMS");
-        jdbcTemplate.execute("DELETE FROM USERS");
     }
 }

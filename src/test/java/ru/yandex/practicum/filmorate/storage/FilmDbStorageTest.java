@@ -29,7 +29,6 @@ import static org.assertj.core.api.Assertions.*;
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class FilmDbStorageTest {
-    private final JdbcTemplate jdbcTemplate;
     private final LikesDbStorage likesDbStorage;
     private final FilmDbStorage filmDbStorage;
     private final MpaRatingDbStorage mpaRatingDbStorage;
@@ -141,17 +140,5 @@ public class FilmDbStorageTest {
 
         assertThat(verification1).isTrue();
         assertThat(verification2).isFalse();
-    }
-
-    @AfterEach
-    public void clean() {
-        jdbcTemplate.execute("DELETE FROM REVIEW_RATINGS");
-        jdbcTemplate.execute("DELETE FROM REVIEWS");
-        jdbcTemplate.execute("DELETE FROM LIKES");
-        jdbcTemplate.execute("DELETE FROM FILM_GENRES");
-        jdbcTemplate.execute("DELETE FROM FRIENDSHIPS");
-        jdbcTemplate.execute("DELETE FROM FEEDS");
-        jdbcTemplate.execute("DELETE FROM FILMS");
-        jdbcTemplate.execute("DELETE FROM USERS");
     }
 }
