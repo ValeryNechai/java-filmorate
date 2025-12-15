@@ -6,6 +6,7 @@ import ru.yandex.practicum.filmorate.model.MpaRating;
 import ru.yandex.practicum.filmorate.model.Review;
 
 import java.util.Collection;
+import java.util.List;
 
 public interface FilmService {
 
@@ -50,4 +51,5 @@ public interface FilmService {
     void deleteLikeFromReview(Long reviewId, Long userId);
 
     void deleteDislikeFromReview(Long reviewId, Long userId);
+    List<Film> searchFilms(String query, String by);
 }

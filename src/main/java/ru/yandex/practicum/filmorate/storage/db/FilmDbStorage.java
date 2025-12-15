@@ -307,4 +307,42 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
 
         return result;
     }
+
+    @Override
+    public List<Film> searchFilms(String query, String by){
+        log.debug("Выполнение поиска фильмов. Запрос: {}", query);
+        log.debug("Параметры поиска: by ={} ", by);
+
+        String searchQuery = "SELECT f.*, r.RATING_NAME, " +
+                "       (SELECT COUNT(*) FROM LIKES l WHERE l.FILM_ID = f.FILM_ID) as like_count " +
+                "FROM FILMS f " +
+                "LEFT JOIN MPA_RATINGS r ON f.RATING_ID = r.RATING_ID " +
+                "WHERE LOWER(f.FILM_NAME) LIKE LOWER(?) " +
+                "ORDER BY like_count DESC";
+
+        String searchPattern = "%" + query.toLowerCase() + "%";
+        List<Film> films = findMany(searchQuery, searchPattern);
+        if (!films.isEmpty()) {
+            Set<Long> filmIds = films.stream()
+                    .map(Film::getId)
+                    .collect(Collectors.toSet());
+
+            log.debug("Загрузка дополнительных данных для фильмов: {}", filmIds);
+
+            Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
+
+            Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
+
+            films.forEach(film -> {
+                film.setFilmGenres(genres.getOrDefault(film.getId(), new HashSet<>()));
+                film.setLikes(likes.getOrDefault(film.getId(), new HashSet<>()));
+                log.debug("Фильм ID {}: {} жанров, {} лайков",
+                        film.getId(),
+                        film.getFilmGenres().size(),
+                        film.getLikes().size());
+            });
+        }
+        return films;
+    }
+
 }

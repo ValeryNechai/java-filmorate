@@ -9,6 +9,7 @@ import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.util.Collection;
+import java.util.List;
 
 @RestController
 @RequestMapping
@@ -127,5 +128,9 @@ public class FilmController {
     @DeleteMapping("/reviews/{id}/dislike/{userId}")
     public void deleteDislikeFromReview(@PathVariable Long id, @PathVariable Long userId) {
         filmService.deleteDislikeFromReview(id, userId);
+    }
+    @GetMapping("/films/search")
+    public List<Film> searchFilms(@RequestParam String query, @RequestParam(defaultValue = "title") String by) {
+        return filmService.searchFilms(query,by);
     }
 }
