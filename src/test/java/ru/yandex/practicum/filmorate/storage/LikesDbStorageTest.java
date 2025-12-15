@@ -23,7 +23,8 @@ import static org.assertj.core.api.Assertions.*;
 @JdbcTest
 @Import({GenreDbStorage.class, GenreRowMapper.class, FilmDbStorage.class, FilmRowMapper.class,
         MpaRatingRowMapper.class, MpaRatingDbStorage.class, LikesDbStorage.class, UserRowMapper.class,
-        UserDbStorage.class, FriendDbStorage.class, ReviewDbStorage.class, ReviewRowMapper.class})
+        UserDbStorage.class, FriendDbStorage.class, ReviewDbStorage.class, ReviewRowMapper.class,
+        FeedDbStorage.class, FeedRowMapper.class})
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class LikesDbStorageTest {

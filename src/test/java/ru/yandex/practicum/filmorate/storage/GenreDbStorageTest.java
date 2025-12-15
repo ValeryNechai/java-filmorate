@@ -10,10 +10,7 @@ import org.springframework.context.annotation.Import;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.db.*;
-import ru.yandex.practicum.filmorate.storage.db.mapper.FilmRowMapper;
-import ru.yandex.practicum.filmorate.storage.db.mapper.GenreRowMapper;
-import ru.yandex.practicum.filmorate.storage.db.mapper.MpaRatingRowMapper;
-import ru.yandex.practicum.filmorate.storage.db.mapper.ReviewRowMapper;
+import ru.yandex.practicum.filmorate.storage.db.mapper.*;
 
 import java.time.LocalDate;
 import java.util.Collection;
@@ -26,7 +23,7 @@ import static org.assertj.core.api.Assertions.*;
 @JdbcTest
 @Import({GenreDbStorage.class, GenreRowMapper.class, FilmDbStorage.class, FilmRowMapper.class,
         MpaRatingRowMapper.class, MpaRatingDbStorage.class, LikesDbStorage.class,
-        ReviewDbStorage.class, ReviewRowMapper.class})
+        ReviewDbStorage.class, ReviewRowMapper.class, FeedDbStorage.class, FeedRowMapper.class})
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class GenreDbStorageTest {

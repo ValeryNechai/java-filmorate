@@ -2,15 +2,16 @@ package ru.yandex.practicum.filmorate.service.db;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Feed;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
+import ru.yandex.practicum.filmorate.storage.db.FeedStorage;
 import ru.yandex.practicum.filmorate.storage.db.FriendStorage;
 
 import java.time.LocalDate;
@@ -18,18 +19,20 @@ import java.util.Collection;
 import java.util.Set;
 
 @Service
-@Primary
 @Slf4j
 public class UserDbService implements UserService {
     private final UserStorage userStorage;
     private final FriendStorage friendStorage;
     private final FilmStorage filmStorage;
+    private final FeedStorage feedStorage;
 
     @Autowired
-    public UserDbService(UserStorage userStorage, FriendStorage friendStorage, FilmStorage filmStorage) {
+    public UserDbService(UserStorage userStorage, FriendStorage friendStorage, FilmStorage filmStorage,
+                         FeedStorage feedStorage) {
         this.userStorage = userStorage;
         this.friendStorage = friendStorage;
         this.filmStorage = filmStorage;
+        this.feedStorage = feedStorage;
     }
 
     @Override
@@ -100,6 +103,11 @@ public class UserDbService implements UserService {
             throw new NotFoundException("Пользователь с id = " + id + " не найден");
         }
         return filmStorage.getRecommendations(id);
+    }
+
+    @Override
+    public Collection<Feed> getFeedsByUserId(Long id) {
+        return feedStorage.getFeedsByUserId(id);
     }
 
     private void validateUser(User user) {
