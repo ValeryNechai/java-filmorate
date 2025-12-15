@@ -5,6 +5,7 @@ import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MpaRating;
 
 import java.util.Collection;
+import java.util.List;
 
 public interface FilmService {
 
@@ -29,4 +30,5 @@ public interface FilmService {
     Collection<MpaRating> getAllMpa();
 
     MpaRating getMpaById(int id);
+    List<Film> searchFilms(String query, String by);
 }

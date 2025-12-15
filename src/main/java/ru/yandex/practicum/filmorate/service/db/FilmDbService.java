@@ -17,6 +17,7 @@ import ru.yandex.practicum.filmorate.storage.db.LikesStorage;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.List;
 
 @Service
 @Primary
@@ -144,5 +145,25 @@ public class FilmDbService implements FilmService {
             log.warn("Пользователь с userId = {} не найден", userId);
             throw new NotFoundException("Пользователь с userId = " + userId + " не найден");
         }
+    }
+
+    @Override
+    public List<Film> searchFilms(String query, String by) {
+        log.debug("Поиск фильмов по запросу: '{}'", query);
+
+        if (query == null || query.trim().isEmpty()) {
+            log.warn("Попытка поиска с пустым запросом");
+            throw new ValidationException("Параметр поиска 'query' не может быть пустым");
+        }
+        query = query.trim();
+        if (query.length() < 2) {
+            log.warn("Слишком короткий запрос для поиска: '{}'", query);
+            throw new ValidationException("Запрос для поиска должен содержать не менее 2 символов");
+        }
+
+        log.info("Выполнение поиска фильмов по запросу: '{}'", query);
+        List<Film> result = filmStorage.searchFilms(query,by);
+        log.info("Найдено {} фильмов по запросу '{}'", result.size(), query);
+        return result;
     }
 }

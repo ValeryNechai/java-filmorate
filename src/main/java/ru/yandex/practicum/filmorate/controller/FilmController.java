@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.model.MpaRating;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.util.Collection;
+import java.util.List;
 
 @RestController
 @RequestMapping
@@ -72,5 +73,10 @@ public class FilmController {
     @GetMapping("/mpa/{id}")
     public MpaRating getMpa(@PathVariable Integer id) {
         return filmService.getMpaById(id);
+    }
+
+    @GetMapping("/films/search")
+    public List<Film> searchFilms(@RequestParam String query, @RequestParam(defaultValue = "title") String by) {
+        return filmService.searchFilms(query,by);
     }
 }
