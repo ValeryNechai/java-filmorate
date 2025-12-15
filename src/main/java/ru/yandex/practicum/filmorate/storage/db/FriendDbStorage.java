@@ -7,6 +7,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.model.EventType;
+import ru.yandex.practicum.filmorate.model.Operation;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.ResultSet;
@@ -19,11 +21,13 @@ import java.util.*;
 public class FriendDbStorage implements FriendStorage {
     private final JdbcTemplate jdbc;
     private final RowMapper<User> mapper;
+    private final FeedStorage feedStorage;
 
     @Override
     public void addFriend(Long id, Long friendId) {
         String addFriendQuery = "INSERT INTO FRIENDSHIPS(USER_ID, FRIEND_ID) VALUES (?, ?)";
         jdbc.update(addFriendQuery, id, friendId);
+        feedStorage.createFeed(id, EventType.FRIEND, Operation.ADD, friendId);
         log.debug("Друг успешно добавлен.");
     }
 
@@ -31,6 +35,7 @@ public class FriendDbStorage implements FriendStorage {
     public void deleteFriend(Long id, Long friendId) {
         String deleteFriendQuery = "DELETE FROM FRIENDSHIPS WHERE USER_ID = ? AND FRIEND_ID = ?";
         jdbc.update(deleteFriendQuery, id, friendId);
+        feedStorage.createFeed(id, EventType.FRIEND, Operation.REMOVE, friendId);
         log.debug("Друг успешно удален.");
     }
 

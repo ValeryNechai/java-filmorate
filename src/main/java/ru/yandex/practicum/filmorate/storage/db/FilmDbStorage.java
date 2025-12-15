@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.storage.db;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -15,7 +14,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Repository
-@Primary
 @Slf4j
 public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorage {
     private final GenreStorage genreStorage;
@@ -90,7 +88,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
     @Override
     public Collection<Film> getAllFilms() {
         String findAllFilmsQuery = "SELECT f.*, r.RATING_NAME FROM FILMS AS f " +
-                "LEFT OUTER JOIN MPA_RATINGS AS r ON f.RATING_ID=r.RATING_ID";
+                "LEFT OUTER JOIN MPA_RATINGS AS r ON f.RATING_ID=r.RATING_ID ORDER BY FILM_ID";
 
         List<Film> films = findMany(findAllFilmsQuery);
         Map<Long, Set<Genre>> genres = genreStorage.getGenresByAllFilms();

@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.storage.db;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
@@ -16,7 +15,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
-@Primary
 @Slf4j
 public class UserDbStorage extends AbstractDbStorage<User> implements UserStorage {
     private final FriendStorage friendStorage;
@@ -62,7 +60,7 @@ public class UserDbStorage extends AbstractDbStorage<User> implements UserStorag
 
     @Override
     public Collection<User> getAllUsers() {
-        String findAllUsersQuery = "SELECT * FROM USERS";
+        String findAllUsersQuery = "SELECT * FROM USERS ORDER BY USER_ID";
 
         Map<Long, Set<Long>> friends = friendStorage.getFriendsByAllUsers();
 
