@@ -28,7 +28,8 @@ import static org.assertj.core.api.Assertions.assertThat;
         UserDbStorage.class, UserRowMapper.class,
         FriendDbStorage.class,
         ReviewDbStorage.class, ReviewRowMapper.class,
-        ReviewRatingsDbStorage.class
+        ReviewRatingsDbStorage.class,
+        FeedDbStorage.class, FeedRowMapper.class
 })
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class RecommendationsDbStorageTest {
