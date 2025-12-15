@@ -274,10 +274,12 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
 
         Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
         Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
+        Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByFilmIds(filmIds);
 
         films.forEach(film -> {
             film.setFilmGenres(genres.getOrDefault(film.getId(), Set.of()));
             film.setLikes(likes.getOrDefault(film.getId(), Set.of()));
+            film.setReviews(reviews.getOrDefault(film.getId(), Set.of()));
         });
 
         return films;
