@@ -31,4 +31,5 @@ public interface FilmStorage {
     boolean existsById(Long id);
 
     List<Film> searchFilms(String query, String by);
+    Collection<Film> getRecommendations(Long userId);
 }
