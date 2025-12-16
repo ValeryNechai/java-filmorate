@@ -122,8 +122,10 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         return film;
     }
 
+
+
     @Override
-    public Collection<Film> getPopularFilms(int count) {
+    public Collection<Film> getPopularFilms(int count, Integer genreId, Integer year) {
         String findPopularFilms =
                 "SELECT f.*, r.RATING_NAME, " +
                         "       (SELECT COUNT(*) FROM LIKES l WHERE l.FILM_ID = f.FILM_ID) as like_count " +
@@ -315,16 +317,18 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
             log.debug("Загрузка дополнительных данных для фильмов: {}", filmIds);
 
             Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
-
+            Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByFilmIds(filmIds);
             Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
 
             films.forEach(film -> {
                 film.setFilmGenres(genres.getOrDefault(film.getId(), new HashSet<>()));
                 film.setLikes(likes.getOrDefault(film.getId(), new HashSet<>()));
-                log.debug("Фильм ID {}: {} жанров, {} лайков",
+                film.setReviews(reviews.getOrDefault(film.getId(), new HashSet<>()));
+                log.debug("Фильм ID {}: {} жанров, {} лайков, {} отзывов",
                         film.getId(),
                         film.getFilmGenres().size(),
-                        film.getLikes().size());
+                        film.getLikes().size(),
+                        film.getReviews().size());
             });
         }
         return films;
