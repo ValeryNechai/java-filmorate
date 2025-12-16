@@ -156,10 +156,10 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByFilmIds(filmIds);
 
         films.forEach(film -> {
-                    film.setLikes(likes.get(film.getId()));
-                    film.setFilmGenres(genres.get(film.getId()));
-                    film.setReviews(reviews.get(film.getId()));
-                });
+            film.setLikes(likes.get(film.getId()));
+            film.setFilmGenres(genres.get(film.getId()));
+            film.setReviews(reviews.get(film.getId()));
+        });
         return films;
     }
 
@@ -309,7 +309,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
     }
 
     @Override
-    public List<Film> searchFilms(String query, String by){
+    public List<Film> searchFilms(String query, String by) {
         log.debug("Выполнение поиска фильмов. Запрос: {}", query);
         log.debug("Параметры поиска: by ={} ", by);
 

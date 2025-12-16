@@ -281,7 +281,7 @@ public class FilmDbService implements FilmService {
         }
 
         log.info("Выполнение поиска фильмов по запросу: '{}'", query);
-        List<Film> result = filmStorage.searchFilms(query,by);
+        List<Film> result = filmStorage.searchFilms(query, by);
         log.info("Найдено {} фильмов по запросу '{}'", result.size(), query);
         return result;
     }

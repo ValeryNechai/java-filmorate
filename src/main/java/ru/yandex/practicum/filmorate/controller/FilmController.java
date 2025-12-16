@@ -106,7 +106,7 @@ public class FilmController {
 
     @GetMapping("/reviews")
     public Collection<Review> getReviewsByFilmIdAndCount(@RequestParam Long filmId,
-            @RequestParam(defaultValue = "10") int count) {
+                                                         @RequestParam(defaultValue = "10") int count) {
         return filmService.getReviewsByFilmIdAndCount(filmId, count);
     }
 
@@ -129,8 +129,9 @@ public class FilmController {
     public void deleteDislikeFromReview(@PathVariable Long id, @PathVariable Long userId) {
         filmService.deleteDislikeFromReview(id, userId);
     }
+
     @GetMapping("/films/search")
     public List<Film> searchFilms(@RequestParam String query, @RequestParam(defaultValue = "title") String by) {
-        return filmService.searchFilms(query,by);
+        return filmService.searchFilms(query, by);
     }
 }
