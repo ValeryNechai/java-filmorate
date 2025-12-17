@@ -5,6 +5,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MpaRating;
@@ -369,14 +370,55 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         log.debug("Выполнение поиска фильмов. Запрос: {}", query);
         log.debug("Параметры поиска: by ={} ", by);
 
-        String searchQuery = "SELECT f.*, r.RATING_NAME, " +
-                "       (SELECT COUNT(*) FROM LIKES l WHERE l.FILM_ID = f.FILM_ID) as like_count " +
-                "FROM FILMS f " +
-                "LEFT JOIN MPA_RATINGS r ON f.RATING_ID = r.RATING_ID " +
-                "WHERE LOWER(f.FILM_NAME) LIKE LOWER(?) " +
-                "ORDER BY like_count DESC";
+        if (by == null || by.trim().isEmpty()) {
+            by = "title";
+        }
 
+        if (by == null || by.trim().isEmpty()) {
+            by = "title";
+        }
+        String byLower = by.toLowerCase();
+
+        if (!byLower.contains("title") && !byLower.contains("director")) {
+            throw new ValidationException("Недопустимое значение параметра 'by'. " +
+                    "Допустимые значения: title, director, title,director");
+        }
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT f.*, r.RATING_NAME, " +
+                        "COUNT(DISTINCT l.user_id) as like_count " +
+                        "FROM FILMS f " +
+                        "LEFT JOIN MPA_RATINGS r ON f.RATING_ID = r.RATING_ID " +
+                        "LEFT JOIN FILM_DIRECTORS fd ON f.FILM_ID = fd.FILM_ID " +
+                        "LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID " +
+                        "LEFT JOIN LIKES l ON f.FILM_ID = l.FILM_ID " +
+                        "WHERE 1=1"
+        );
+
+        List<Object> params = new ArrayList<>();
         String searchPattern = "%" + query.toLowerCase() + "%";
+
+
+        if (byLower.contains("title") && byLower.contains("director")) {
+            sql.append(" AND (LOWER(f.FILM_NAME) LIKE ? OR LOWER(d.DIRECTOR_NAME) LIKE ?)");
+            params.add(searchPattern);
+            params.add(searchPattern);
+        } else if (byLower.contains("title")) {
+            sql.append(" AND LOWER(f.FILM_NAME) LIKE ?");
+            params.add(searchPattern);
+        } else if (byLower.contains("director")) {
+            sql.append(" AND LOWER(d.DIRECTOR_NAME) LIKE ?");
+            params.add(searchPattern);
+        }
+
+        sql.append(" GROUP BY f.FILM_ID, f.FILM_NAME, f.DESCRIPTION, f.RELEASE_DATE, " +
+                "f.DURATION, f.RATING_ID, r.RATING_NAME");
+        sql.append(" ORDER BY COUNT(l.user_id) DESC");
+
+        String searchQuery = sql.toString();
+        log.debug("SQL запрос поиска: {}", searchQuery);
+        log.debug("Параметры поиска: {}", params);
+
         List<Film> films = findMany(searchQuery, searchPattern);
         if (!films.isEmpty()) {
             Set<Long> filmIds = films.stream()
@@ -388,11 +430,13 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
             Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
             Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByFilmIds(filmIds);
             Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
+            Map<Long, Set<Director>> directors = getDirectorsByFilmIds(filmIds);
 
             films.forEach(film -> {
                 film.setFilmGenres(genres.getOrDefault(film.getId(), new HashSet<>()));
                 film.setLikes(likes.getOrDefault(film.getId(), new HashSet<>()));
                 film.setReviews(reviews.getOrDefault(film.getId(), new HashSet<>()));
+                film.setDirectors(directors.getOrDefault(film.getId(), Set.of()));
                 log.debug("Фильм ID {}: {} жанров, {} лайков, {} рейтингов",
                         film.getId(),
                         film.getFilmGenres().size(),
