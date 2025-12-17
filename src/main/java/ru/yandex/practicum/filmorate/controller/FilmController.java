@@ -108,6 +108,7 @@ public class FilmController {
             @RequestParam(defaultValue = "10") int count) {
         return filmService.getReviewsByFilmIdAndCount(filmId, count);
     }
+
     @GetMapping("/films/director/{directorId}")
     public Collection<Film> getFilmsByDirector(@PathVariable Long directorId,
                                                @RequestParam String sortBy) {
