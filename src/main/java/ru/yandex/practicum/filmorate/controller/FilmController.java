@@ -105,7 +105,7 @@ public class FilmController {
 
     @GetMapping("/reviews")
     public Collection<Review> getReviewsByFilmIdAndCount(@RequestParam Long filmId,
-            @RequestParam(defaultValue = "10") int count) {
+                                                         @RequestParam(defaultValue = "10") int count) {
         return filmService.getReviewsByFilmIdAndCount(filmId, count);
     }
 
