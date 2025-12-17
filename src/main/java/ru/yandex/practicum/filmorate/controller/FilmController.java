@@ -110,6 +110,12 @@ public class FilmController {
         return filmService.getReviewsByFilmIdAndCount(filmId, count);
     }
 
+    @GetMapping("/films/director/{directorId}")
+    public Collection<Film> getFilmsByDirector(@PathVariable Long directorId,
+                                               @RequestParam String sortBy) {
+        return filmService.getFilmsByDirector(directorId, sortBy);
+    }
+
     @PutMapping("/reviews/{id}/like/{userId}")
     public void addLikeToReview(@PathVariable Long id, @PathVariable Long userId) {
         filmService.addLikeToReview(id, userId);
