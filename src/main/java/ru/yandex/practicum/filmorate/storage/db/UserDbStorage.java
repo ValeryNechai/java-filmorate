@@ -66,9 +66,6 @@ public class UserDbStorage extends AbstractDbStorage<User> implements UserStorag
             throw new NotFoundException("Пользователь с id = " + userId + " не найден");
         }
 
-        // 1. Лайки/дизлайки отзывов, где:
-        //    - пользователь голосовал
-        //    - ИЛИ отзыв принадлежит пользователю
         jdbc.update("""
                 DELETE FROM REVIEW_RATINGS
                 WHERE USER_ID = ?
@@ -77,22 +74,17 @@ public class UserDbStorage extends AbstractDbStorage<User> implements UserStorag
                    )
                 """, userId, userId);
 
-        // 2. Отзывы пользователя
         jdbc.update("DELETE FROM REVIEWS WHERE USER_ID = ?", userId);
 
-        // 3. Лайки фильмов
         jdbc.update("DELETE FROM LIKES WHERE USER_ID = ?", userId);
 
-        // 4. Дружба
         jdbc.update(
                 "DELETE FROM FRIENDSHIPS WHERE USER_ID = ? OR FRIEND_ID = ?",
                 userId, userId
         );
 
-        // 5. Лента событий
         jdbc.update("DELETE FROM FEEDS WHERE USER_ID = ?", userId);
 
-        // 6. Пользователь
         jdbc.update("DELETE FROM USERS WHERE USER_ID = ?", userId);
     }
 
