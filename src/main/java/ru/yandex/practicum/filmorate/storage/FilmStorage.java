@@ -30,4 +30,5 @@ public interface FilmStorage {
     boolean existsById(Long id);
 
     Collection<Film> getFilmsByDirector(Long directorId, String sortBy);
+    Collection<Film> getRecommendations(Long userId);
 }

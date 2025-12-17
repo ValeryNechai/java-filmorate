@@ -282,6 +282,62 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         return count > 0;
     }
 
+    @Override
+    public Collection<Film> getRecommendations(Long userId) {
+        String similarUserQuery =
+                "SELECT l2.USER_ID " +
+                        "FROM LIKES l1 " +
+                        "JOIN LIKES l2 ON l1.FILM_ID = l2.FILM_ID " +
+                        "WHERE l1.USER_ID = ? AND l2.USER_ID <> ? " +
+                        "GROUP BY l2.USER_ID " +
+                        "ORDER BY COUNT(*) DESC, l2.USER_ID ASC " +
+                        "LIMIT 1";
+
+        Long similarUserId = jdbc.query(
+                similarUserQuery,
+                rs -> rs.next() ? rs.getLong("USER_ID") : null,
+                userId,
+                userId
+        );
+
+        if (similarUserId == null) {
+            return List.of();
+        }
+        String recFilmsQuery =
+                "SELECT f.*, r.RATING_NAME " +
+                        "FROM FILMS f " +
+                        "LEFT JOIN MPA_RATINGS r ON f.RATING_ID = r.RATING_ID " +
+                        "JOIN LIKES l ON f.FILM_ID = l.FILM_ID " +
+                        "WHERE l.USER_ID = ? " +
+                        "  AND NOT EXISTS ( " +
+                        "      SELECT 1 FROM LIKES l3 " +
+                        "      WHERE l3.USER_ID = ? AND l3.FILM_ID = f.FILM_ID " +
+                        "  ) " +
+                        "ORDER BY " +
+                        "  (SELECT COUNT(*) FROM LIKES ll WHERE ll.FILM_ID = f.FILM_ID) DESC, " +
+                        "  f.FILM_ID ASC";
+
+        List<Film> films = findMany(recFilmsQuery, similarUserId, userId);
+        if (films.isEmpty()) {
+            return List.of();
+        }
+        Set<Long> filmIds = films.stream()
+                .map(Film::getId)
+                .collect(Collectors.toSet());
+
+        Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
+        Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
+        Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByFilmIds(filmIds);
+
+        films.forEach(film -> {
+            film.setFilmGenres(genres.getOrDefault(film.getId(), Set.of()));
+            film.setLikes(likes.getOrDefault(film.getId(), Set.of()));
+            film.setReviews(reviews.getOrDefault(film.getId(), Set.of()));
+        });
+
+        return films;
+    }
+
     private void saveFilmGenres(Film film) {
         String saveQuery = "INSERT INTO FILM_GENRES (FILM_ID, GENRE_ID) VALUES (?, ?)";
         List<Object[]> batchArgs = film.getFilmGenres().stream()
