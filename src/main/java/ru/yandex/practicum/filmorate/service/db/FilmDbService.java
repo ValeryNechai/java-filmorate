@@ -287,8 +287,8 @@ public class FilmDbService implements FilmService {
         List<Film> result = filmStorage.searchFilms(query, by);
         log.info("Найдено {} фильмов по запросу '{}'", result.size(), query);
         return result;
-      }
-  
+    }
+
     public Collection<Film> getFilmsByDirector(Long directorId, String sortBy) {
 
         directorStorage.getDirectorById(directorId);
