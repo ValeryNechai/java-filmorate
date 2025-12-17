@@ -53,6 +53,6 @@ public interface FilmService {
     void deleteDislikeFromReview(Long reviewId, Long userId);
 
     List<Film> searchFilms(String query, String by);
-  
+
     Collection<Film> getFilmsByDirector(Long directorId, String sortBy);
 }
