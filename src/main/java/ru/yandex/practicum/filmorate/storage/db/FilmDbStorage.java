@@ -431,7 +431,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         String trimmedQuery = query.trim();
         String trimmedBy = (by == null || by.trim().isEmpty()) ? "title" : by.trim().toLowerCase();
 
-        // Проверяем допустимые значения by
+
         if (!trimmedBy.equals("title") &&
                 !trimmedBy.equals("director") &&
                 !trimmedBy.equals("title,director") &&
@@ -447,32 +447,30 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         StringBuilder sql = new StringBuilder();
         List<Object> params = new ArrayList<>();
 
-        sql.append("SELECT DISTINCT f.*, r.RATING_NAME, ");
+
+        sql.append("SELECT f.*, r.RATING_NAME, ");
         sql.append("(SELECT COUNT(*) FROM LIKES l WHERE l.FILM_ID = f.FILM_ID) as like_count ");
         sql.append("FROM FILMS f ");
         sql.append("LEFT JOIN MPA_RATINGS r ON f.RATING_ID = r.RATING_ID ");
+
 
         if (searchByTitle && searchByDirector) {
             sql.append("WHERE (LOWER(f.FILM_NAME) LIKE ? ");
             params.add(searchPattern);
 
-            sql.append("OR f.FILM_ID IN (");
-            sql.append("SELECT fd.FILM_ID FROM FILM_DIRECTORS fd ");
+            sql.append("OR EXISTS (SELECT 1 FROM FILM_DIRECTORS fd ");
             sql.append("JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID ");
-            sql.append("WHERE LOWER(d.DIRECTOR_NAME) LIKE ?");
+            sql.append("WHERE fd.FILM_ID = f.FILM_ID AND LOWER(d.DIRECTOR_NAME) LIKE ?)) ");
             params.add(searchPattern);
-            sql.append(")) ");
 
         } else if (searchByTitle) {
             sql.append("WHERE LOWER(f.FILM_NAME) LIKE ? ");
             params.add(searchPattern);
         } else if (searchByDirector) {
-            sql.append("WHERE f.FILM_ID IN (");
-            sql.append("SELECT fd.FILM_ID FROM FILM_DIRECTORS fd ");
+            sql.append("WHERE EXISTS (SELECT 1 FROM FILM_DIRECTORS fd ");
             sql.append("JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID ");
-            sql.append("WHERE LOWER(d.DIRECTOR_NAME) LIKE ?");
+            sql.append("WHERE fd.FILM_ID = f.FILM_ID AND LOWER(d.DIRECTOR_NAME) LIKE ?) ");
             params.add(searchPattern);
-            sql.append(") ");
         }
 
         sql.append("ORDER BY like_count DESC");
@@ -483,29 +481,38 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
 
         List<Film> films;
         try {
+
             films = findMany(searchQuery, params.toArray());
+            log.debug("Найдено фильмов: {}", films.size());
         } catch (Exception e) {
             log.error("Ошибка при выполнении поиска: {}", e.getMessage(), e);
-            throw new InternalServerException("Ошибка при выполнении поиска фильмов");
+            log.error("SQL: {}", searchQuery);
+            log.error("Params: {}", params);
+            throw new InternalServerException("Ошибка при выполнении поиска фильмов: " + e.getMessage());
         }
 
-        // Загружаем дополнительные данные
+
         if (!films.isEmpty()) {
             Set<Long> filmIds = films.stream()
                     .map(Film::getId)
                     .collect(Collectors.toSet());
 
-            Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
-            Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
-            Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByFilmIds(filmIds);
-            Map<Long, Set<Director>> directors = getDirectorsByFilmIds(filmIds);
+            try {
+                Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
+                Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
+                Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByFilmIds(filmIds);
+                Map<Long, Set<Director>> directors = getDirectorsByFilmIds(filmIds);
 
-            films.forEach(film -> {
-                film.setFilmGenres(genres.getOrDefault(film.getId(), Set.of()));
-                film.setLikes(likes.getOrDefault(film.getId(), Set.of()));
-                film.setReviews(reviews.getOrDefault(film.getId(), Set.of()));
-                film.setDirectors(directors.getOrDefault(film.getId(), Set.of()));
-            });
+                films.forEach(film -> {
+                    film.setFilmGenres(genres.getOrDefault(film.getId(), Set.of()));
+                    film.setLikes(likes.getOrDefault(film.getId(), Set.of()));
+                    film.setReviews(reviews.getOrDefault(film.getId(), Set.of()));
+                    film.setDirectors(directors.getOrDefault(film.getId(), Set.of()));
+                });
+            } catch (Exception e) {
+                log.error("Ошибка при загрузке дополнительных данных: {}", e.getMessage(), e);
+
+            }
         }
 
         log.debug("Найдено {} фильмов по запросу '{}' (by={})", films.size(), trimmedQuery, trimmedBy);
