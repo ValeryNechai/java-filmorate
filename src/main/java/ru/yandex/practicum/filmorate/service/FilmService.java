@@ -50,4 +50,6 @@ public interface FilmService {
     void deleteLikeFromReview(Long reviewId, Long userId);
 
     void deleteDislikeFromReview(Long reviewId, Long userId);
+
+    Collection<Film> getFilmsByDirector(Long directorId, String sortBy);
 }

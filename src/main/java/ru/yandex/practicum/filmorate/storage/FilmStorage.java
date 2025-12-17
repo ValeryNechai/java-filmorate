@@ -28,4 +28,6 @@ public interface FilmStorage {
     MpaRating getMpaById(int id);
 
     boolean existsById(Long id);
+
+    Collection<Film> getFilmsByDirector(Long directorId, String sortBy);
 }
