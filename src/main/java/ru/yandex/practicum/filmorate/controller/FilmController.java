@@ -105,8 +105,14 @@ public class FilmController {
 
     @GetMapping("/reviews")
     public Collection<Review> getReviewsByFilmIdAndCount(@RequestParam Long filmId,
-            @RequestParam(defaultValue = "10") int count) {
+                                                         @RequestParam(defaultValue = "10") int count) {
         return filmService.getReviewsByFilmIdAndCount(filmId, count);
+    }
+
+    @GetMapping("/films/director/{directorId}")
+    public Collection<Film> getFilmsByDirector(@PathVariable Long directorId,
+                                               @RequestParam String sortBy) {
+        return filmService.getFilmsByDirector(directorId, sortBy);
     }
 
     @PutMapping("/reviews/{id}/like/{userId}")

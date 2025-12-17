@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.storage.DirectorStorage;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import ru.yandex.practicum.filmorate.storage.db.LikesStorage;
@@ -26,18 +27,20 @@ public class FilmDbService implements FilmService {
     private final LikesStorage likesStorage;
     private final ReviewStorage reviewStorage;
     private final ReviewRatingsStorage reviewRatingsStorage;
+    private final DirectorStorage directorStorage;
     private static final int MAX_DESCRIPTION_LENGTH = 200;
     private static final LocalDate DECEMBER_1895 = LocalDate.of(1895, 12, 28);
 
     @Autowired
     public FilmDbService(FilmStorage filmStorage, UserStorage userStorage,
                          LikesStorage likesStorage, ReviewStorage reviewStorage,
-                         ReviewRatingsStorage reviewRatingsStorage) {
+                         ReviewRatingsStorage reviewRatingsStorage, DirectorStorage directorStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.likesStorage = likesStorage;
         this.reviewStorage = reviewStorage;
         this.reviewRatingsStorage = reviewRatingsStorage;
+        this.directorStorage = directorStorage;
     }
 
     @Override
@@ -263,5 +266,16 @@ public class FilmDbService implements FilmService {
             log.warn("Пользователь с userId = {} не найден", userId);
             throw new NotFoundException("Пользователь с userId = " + userId + " не найден");
         }
+    }
+
+    @Override
+    public Collection<Film> getFilmsByDirector(Long directorId, String sortBy) {
+
+        directorStorage.getDirectorById(directorId);
+
+        if (sortBy == null || (!sortBy.equals("year") && !sortBy.equals("likes"))) {
+            throw new ValidationException("sortBy должен быть 'year' или 'likes'");
+        }
+        return filmStorage.getFilmsByDirector(directorId, sortBy);
     }
 }

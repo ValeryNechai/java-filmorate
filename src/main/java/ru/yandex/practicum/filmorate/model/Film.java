@@ -26,4 +26,7 @@ public class Film {
 
     @JsonProperty("genres")
     private Set<Genre> filmGenres = new HashSet<>();
+
+    @JsonProperty("directors")
+    private Set<Director> directors = new HashSet<>();
 }
