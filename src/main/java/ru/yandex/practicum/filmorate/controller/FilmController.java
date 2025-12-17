@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -28,6 +29,12 @@ public class FilmController {
     @PutMapping("/films")
     public Film updateFilm(@RequestBody Film newFilm) {
         return filmService.updateFilm(newFilm);
+    }
+
+    @DeleteMapping("/films/{filmId}")
+    public ResponseEntity<Void> deleteFilm(@PathVariable Long filmId) {
+        filmService.deleteFilm(filmId);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/films")

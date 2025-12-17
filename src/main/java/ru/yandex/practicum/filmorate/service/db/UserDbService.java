@@ -2,7 +2,10 @@ package ru.yandex.practicum.filmorate.service.db;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -48,6 +51,14 @@ public class UserDbService implements UserService {
         }
         validateUser(newUser);
         return userStorage.updateUser(newUser);
+    }
+
+    @Override
+    public void deleteUser(Long userId) {
+        if (!userStorage.existsById(userId)) {
+            throw new NotFoundException("Пользователь с id = " + userId + " не найден.");
+        }
+        userStorage.deleteUserById(userId);
     }
 
     @Override

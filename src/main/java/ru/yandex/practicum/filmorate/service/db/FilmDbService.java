@@ -60,6 +60,14 @@ public class FilmDbService implements FilmService {
     }
 
     @Override
+    public void deleteFilm(Long filmId) {
+        if (!filmStorage.existsById(filmId)) {
+            throw new NotFoundException("Фильм с id = " + filmId + " не найден.");
+        }
+        filmStorage.deleteFilmById(filmId);
+    }
+
+    @Override
     public Collection<Film> getAllFilms() {
         return filmStorage.getAllFilms();
     }

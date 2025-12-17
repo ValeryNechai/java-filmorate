@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.db.*;
@@ -98,6 +99,25 @@ public class FilmDbStorageTest {
         assertThat(updatingFilm)
                 .isNotNull()
                 .hasFieldOrPropertyWithValue("name", "Матрица 2.0");
+    }
+
+    @Test
+    public void shouldDeleteFilmById() {
+        long filmId = createdFilm1.getId();
+
+        filmDbStorage.deleteFilmById(filmId);
+
+        assertThat(filmDbStorage.existsById(filmId)).isFalse();
+    }
+
+    @Test
+    public void shouldThrowExceptionWhenGettingDeletedFilm() {
+        long filmId = createdFilm2.getId();
+
+        filmDbStorage.deleteFilmById(filmId);
+
+        assertThatThrownBy(() -> filmDbStorage.getFilm(filmId))
+                .isInstanceOf(NotFoundException.class);
     }
 
     @Test
