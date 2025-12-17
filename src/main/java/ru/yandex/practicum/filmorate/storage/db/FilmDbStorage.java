@@ -424,7 +424,6 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
     public List<Film> searchFilms(String query, String by) {
         log.debug("Выполнение поиска фильмов. Запрос: {}, by: {}", query, by);
 
-
         if (query == null || query.trim().isEmpty()) {
             throw new ValidationException("Параметр поиска 'query' не может быть пустым");
         }
@@ -432,6 +431,13 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         String trimmedQuery = query.trim();
         String trimmedBy = (by == null || by.trim().isEmpty()) ? "title" : by.trim().toLowerCase();
 
+        // Проверяем допустимые значения by
+        if (!trimmedBy.equals("title") &&
+                !trimmedBy.equals("director") &&
+                !trimmedBy.equals("title,director") &&
+                !trimmedBy.equals("director,title")) {
+            throw new ValidationException("Параметр 'by' может принимать значения: title, director, title,director");
+        }
 
         boolean searchByTitle = trimmedBy.contains("title");
         boolean searchByDirector = trimmedBy.contains("director");
@@ -441,31 +447,32 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         StringBuilder sql = new StringBuilder();
         List<Object> params = new ArrayList<>();
 
-        sql.append("SELECT DISTINCT f.*, r.RATING_NAME ");
-
-
-        sql.append(", (SELECT COUNT(*) FROM LIKES l WHERE l.FILM_ID = f.FILM_ID) as like_count ");
+        sql.append("SELECT DISTINCT f.*, r.RATING_NAME, ");
+        sql.append("(SELECT COUNT(*) FROM LIKES l WHERE l.FILM_ID = f.FILM_ID) as like_count ");
         sql.append("FROM FILMS f ");
         sql.append("LEFT JOIN MPA_RATINGS r ON f.RATING_ID = r.RATING_ID ");
 
-        if (searchByDirector) {
-            sql.append("LEFT JOIN FILM_DIRECTORS fd ON f.FILM_ID = fd.FILM_ID ");
-            sql.append("LEFT JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID ");
-        }
-
-        sql.append("WHERE 1=1 ");
-
-
         if (searchByTitle && searchByDirector) {
-            sql.append("AND (LOWER(f.FILM_NAME) LIKE ? OR LOWER(d.DIRECTOR_NAME) LIKE ?) ");
+            sql.append("WHERE (LOWER(f.FILM_NAME) LIKE ? ");
             params.add(searchPattern);
+
+            sql.append("OR f.FILM_ID IN (");
+            sql.append("SELECT fd.FILM_ID FROM FILM_DIRECTORS fd ");
+            sql.append("JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID ");
+            sql.append("WHERE LOWER(d.DIRECTOR_NAME) LIKE ?");
             params.add(searchPattern);
+            sql.append(")) ");
+
         } else if (searchByTitle) {
-            sql.append("AND LOWER(f.FILM_NAME) LIKE ? ");
+            sql.append("WHERE LOWER(f.FILM_NAME) LIKE ? ");
             params.add(searchPattern);
         } else if (searchByDirector) {
-            sql.append("AND LOWER(d.DIRECTOR_NAME) LIKE ? ");
+            sql.append("WHERE f.FILM_ID IN (");
+            sql.append("SELECT fd.FILM_ID FROM FILM_DIRECTORS fd ");
+            sql.append("JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID ");
+            sql.append("WHERE LOWER(d.DIRECTOR_NAME) LIKE ?");
             params.add(searchPattern);
+            sql.append(") ");
         }
 
         sql.append("ORDER BY like_count DESC");
@@ -473,7 +480,6 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         String searchQuery = sql.toString();
         log.debug("SQL запрос поиска: {}", searchQuery);
         log.debug("Параметры: {}", params);
-
 
         List<Film> films;
         try {
@@ -483,7 +489,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
             throw new InternalServerException("Ошибка при выполнении поиска фильмов");
         }
 
-
+        // Загружаем дополнительные данные
         if (!films.isEmpty()) {
             Set<Long> filmIds = films.stream()
                     .map(Film::getId)
@@ -502,7 +508,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
             });
         }
 
-        log.debug("Найдено {} фильмов по запросу '{}'", films.size(), trimmedQuery);
+        log.debug("Найдено {} фильмов по запросу '{}' (by={})", films.size(), trimmedQuery, trimmedBy);
         return films;
     }
 
