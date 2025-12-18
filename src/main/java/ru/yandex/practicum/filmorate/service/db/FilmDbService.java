@@ -80,9 +80,8 @@ public class FilmDbService implements FilmService {
 
     @Override
     public void addLike(Long id, Long userId) {
-        Film film = filmStorage.getFilm(id);
         validateLike(id, userId);
-        if (film.getLikes().contains(userId)) {
+        if (likesStorage.existsLike(id, userId)) {
             log.warn("Попытка повторно поставить лайк фильму");
             throw new ValidationException("Фильм можно лайкнуть только один раз!");
         }
@@ -92,9 +91,8 @@ public class FilmDbService implements FilmService {
 
     @Override
     public void deleteLike(Long id, Long userId) {
-        Film film = filmStorage.getFilm(id);
         validateLike(id, userId);
-        if (!film.getLikes().contains(userId)) {
+        if (!likesStorage.existsLike(id, userId)) {
             log.warn("Попытка удалить несуществующий лайк. Ранее лайк этому фильму не был поставлен");
             throw new ValidationException("Нельзя удалить несуществующий лайк. " +
                     "Ранее лайк этому фильму не был поставлен");
@@ -221,12 +219,16 @@ public class FilmDbService implements FilmService {
     }
 
     private void validateLike(Long id, Long userId) {
-        Film film = filmStorage.getFilm(id);
-        User user = userStorage.getUser(userId);
-        if (film == null) {
+        try {
+            filmStorage.getFilm(id);
+        } catch (NotFoundException e) {
             log.warn("Фильм с id = {} не найден", id);
             throw new NotFoundException("Фильм с id = " + id + " не найден");
-        } else if (user == null) {
+        }
+
+        try {
+            userStorage.getUser(userId);
+        } catch (NotFoundException e) {
             log.warn("Пользователь с userId = {} не найден", userId);
             throw new NotFoundException("Пользователь с userId = " + userId + " не найден");
         }
@@ -307,4 +309,3 @@ public class FilmDbService implements FilmService {
         return filmStorage.getFilmsByDirector(directorId, sortBy);
     }
 }
-

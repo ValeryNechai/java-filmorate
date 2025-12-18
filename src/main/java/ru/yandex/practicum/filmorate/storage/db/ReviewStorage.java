@@ -15,6 +15,8 @@ public interface ReviewStorage {
 
     Review getReviewById(Long reviewId);
 
+    Set<Long> getReviewsByFilmId(Long filmId);
+
     boolean existsById(Long id);
 
     Collection<Review> getReviewsByFilmIdAndCount(Long filmId, int count);

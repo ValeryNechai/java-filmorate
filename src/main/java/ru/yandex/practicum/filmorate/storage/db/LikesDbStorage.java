@@ -21,8 +21,8 @@ public class LikesDbStorage implements LikesStorage {
     private final JdbcTemplate jdbc;
     private final FeedStorage feedStorage;
     private static final String FIND_LIKES_BY_FILM_ID_QUERY = "SELECT USER_ID FROM LIKES WHERE FILM_ID = ?";
-    private static final String ADD_LIKE_QUERY = "INSERT INTO LIKES(USER_ID, FILM_ID) VALUES (?, ?)";
-    private static final String DELETE_LIKE_QUERY = "DELETE FROM LIKES WHERE FILM_ID = ? AND USER_ID = ?";
+    private static final String ADD_LIKE_QUERY = "INSERT INTO LIKES (USER_ID, FILM_ID) VALUES (?, ?)";
+    private static final String DELETE_LIKE_QUERY = "DELETE FROM LIKES WHERE USER_ID = ? AND FILM_ID = ?";
     private static final String FIND_LIKES_BY_ALL_FILMS_QUERY = "SELECT FILM_ID, USER_ID FROM LIKES";
 
     @Override
@@ -40,7 +40,7 @@ public class LikesDbStorage implements LikesStorage {
 
     @Override
     public void deleteLike(Long filmId, Long userId) {
-        jdbc.update(DELETE_LIKE_QUERY, filmId, userId);
+        jdbc.update(DELETE_LIKE_QUERY, userId, filmId);
         feedStorage.createFeed(userId, EventType.LIKE, Operation.REMOVE, filmId);
         log.debug("Лайк успешно удален.");
     }
@@ -83,5 +83,12 @@ public class LikesDbStorage implements LikesStorage {
                 return result;
             }
         });
+    }
+
+    @Override
+    public boolean existsLike(Long filmId, Long userId) {
+        String existsLikeQuery = "SELECT COUNT(*) FROM LIKES WHERE USER_ID = ? AND FILM_ID = ?";
+        Integer count = jdbc.queryForObject(existsLikeQuery, Integer.class, userId, filmId);
+        return count != null && count > 0;
     }
 }

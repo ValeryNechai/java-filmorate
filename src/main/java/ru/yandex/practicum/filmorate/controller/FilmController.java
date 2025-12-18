@@ -112,7 +112,7 @@ public class FilmController {
     }
 
     @GetMapping("/reviews")
-    public Collection<Review> getReviewsByFilmIdAndCount(@RequestParam Long filmId,
+    public Collection<Review> getReviewsByFilmIdAndCount(@RequestParam(required = false) Long filmId,
                                                          @RequestParam(defaultValue = "10") int count) {
         return filmService.getReviewsByFilmIdAndCount(filmId, count);
     }
@@ -144,7 +144,8 @@ public class FilmController {
     }
 
     @GetMapping("/films/search")
-    public List<Film> searchFilms(@RequestParam String query, @RequestParam(required = false, defaultValue = "title") String by) {
+    public List<Film> searchFilms(@RequestParam String query,
+                                  @RequestParam(required = false, defaultValue = "title") String by) {
         return filmService.searchFilms(query, by);
     }
 }

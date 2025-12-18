@@ -121,14 +121,19 @@ public class UserDbService implements UserService {
     private void validateUser(User user) {
         log.debug("Начало проверки соответствия данных пользователя {} всем критериям.", user.getName());
 
-        if (user.getEmail() == null || !user.getEmail().contains("@")) {
-            log.warn("Email пользователя {} не соответствует требованиям.", user.getName());
-            throw new ValidationException("Электронная почта не может быть пустой и должна содержать символ @.");
-        }
-
         if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
             log.warn("Логин пользователя {} не соответствует требованиям.", user.getName());
             throw new ValidationException("Логин не может быть пустым и содержать пробелы.");
+        }
+
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+            log.info("Имя пользователя задано автоматически по логину: {}.", user.getName());
+        }
+
+        if (user.getEmail() == null || !user.getEmail().contains("@")) {
+            log.warn("Email пользователя {} не соответствует требованиям.", user.getName());
+            throw new ValidationException("Электронная почта не может быть пустой и должна содержать символ @.");
         }
 
         if (user.getBirthday() == null || user.getBirthday().isAfter(LocalDate.now())) {

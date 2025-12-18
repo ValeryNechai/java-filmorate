@@ -135,9 +135,12 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
 
     @Override
     public void deleteFilmById(Long filmId) {
+        jdbc.update("DELETE FROM REVIEWS WHERE FILM_ID = ?", filmId);
         jdbc.update("DELETE FROM LIKES WHERE FILM_ID = ?", filmId);
         jdbc.update("DELETE FROM FILM_GENRES WHERE FILM_ID = ?", filmId);
+        jdbc.update("DELETE FROM FILM_DIRECTORS WHERE FILM_ID = ?", filmId);
         jdbc.update("DELETE FROM FILMS WHERE FILM_ID = ?", filmId);
+
     }
 
     @Override
@@ -178,6 +181,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
 
         film.setFilmGenres(new LinkedHashSet<>(genreStorage.getGenresByFilmId(id)));
         film.setLikes(likesStorage.getLikesByFilmId(id));
+        film.setReviews(reviewStorage.getReviewsByFilmId(id));
         film.setDirectors(getDirectorsByFilmId(id));
         return film;
     }
@@ -188,23 +192,31 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         List<Object> params = new ArrayList<>();
         StringBuilder findPopularFilms = new StringBuilder(
                 "SELECT f.*, r.RATING_NAME, " +
-                        "(SELECT COUNT(*) " +
-                        "FROM PUBLIC.LIKES l " +
-                        "WHERE ");
-        if (genreId != null) {
-            findPopularFilms.append("f.FILM_ID IN (SELECT FILM_ID FROM PUBLIC.FILM_GENRES WHERE GENRE_ID = ?) AND ");
-            params.add(genreId);
-        }
-        if (year != null) {
-            findPopularFilms.append("EXTRACT(YEAR FROM CAST(f.RELEASE_DATE AS DATE)) = ? AND ");
-            params.add(year);
+                        "(SELECT COUNT(*) FROM PUBLIC.LIKES l WHERE l.FILM_ID = f.FILM_ID) as like_count " +
+                        "FROM PUBLIC.FILMS f " +
+                        "LEFT JOIN PUBLIC.MPA_RATINGS r ON f.RATING_ID = r.RATING_ID "
+        );
+
+        boolean hasFilter = false;
+        if (genreId != null || year != null) {
+            findPopularFilms.append("WHERE ");
+
+            if (genreId != null) {
+                findPopularFilms.append("f.FILM_ID IN (SELECT FILM_ID FROM PUBLIC.FILM_GENRES WHERE GENRE_ID = ?) ");
+                params.add(genreId);
+                hasFilter = true;
+            }
+
+            if (year != null) {
+                if (hasFilter) {
+                    findPopularFilms.append("AND ");
+                }
+                findPopularFilms.append("EXTRACT(YEAR FROM CAST(f.RELEASE_DATE AS DATE)) = ? ");
+                params.add(year);
+            }
         }
 
-        findPopularFilms.append("l.FILM_ID = f.FILM_ID) as like_count " +
-                "FROM PUBLIC.FILMS f " +
-                "LEFT JOIN PUBLIC.MPA_RATINGS r ON f.RATING_ID = r.RATING_ID " +
-                "ORDER BY like_count DESC, f.FILM_ID DESC " +
-                "LIMIT ?");
+        findPopularFilms.append("ORDER BY like_count DESC, f.FILM_ID ASC LIMIT ?");
         params.add(count);
 
         List<Film> films = findMany(String.valueOf(findPopularFilms), params.toArray());

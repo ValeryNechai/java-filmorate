@@ -17,7 +17,8 @@ import java.util.Collection;
 public class FeedDbStorage extends AbstractDbStorage<Feed> implements FeedStorage {
     private static final String INSERT_FEED_QUERY =
             "INSERT INTO FEEDS (TIMESTAMP, USER_ID, EVENT_TYPE, OPERATION, ENTITY_ID) VALUES (?, ?, ?, ?, ?)";
-    private static final String FIND_FEEDS_BY_USER_ID = "SELECT * FROM FEEDS WHERE USER_ID = ?";
+    private static final String FIND_FEEDS_BY_USER_ID =
+            "SELECT * FROM FEEDS WHERE USER_ID = ? ORDER BY EVENT_ID ASC";
 
     public FeedDbStorage(JdbcTemplate jdbc, RowMapper<Feed> mapper) {
         super(jdbc, mapper);

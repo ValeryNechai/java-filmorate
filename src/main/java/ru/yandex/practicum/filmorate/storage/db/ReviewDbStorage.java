@@ -19,16 +19,19 @@ import java.util.stream.Collectors;
 @Repository
 @Slf4j
 public class ReviewDbStorage extends AbstractDbStorage<Review> implements ReviewStorage {
-    private static FeedStorage feedStorage;
+    private final FeedStorage feedStorage;
     private static final String INSERT_REVIEW_QUERY =
             "INSERT INTO REVIEWS (CONTENT, IS_POSITIVE, USER_ID, FILM_ID) " +
                     "VALUES (?, ?, ?, ?)";
-    private static final String UPDATE_REVIEW_QUERY = "UPDATE REVIEWS SET CONTENT = ?, IS_POSITIVE = ?, " +
-            "USER_ID = ?, FILM_ID = ? WHERE REVIEW_ID = ?";
+    private static final String UPDATE_REVIEW_QUERY = "UPDATE REVIEWS SET CONTENT = ?, IS_POSITIVE = ? " +
+            "WHERE REVIEW_ID = ?";
     private static final String DELETE_REVIEW_QUERY = "DELETE FROM REVIEWS WHERE REVIEW_ID = ?";
     private static final String FIND_REVIEW_BY_ID_QUERY = "SELECT * FROM REVIEWS WHERE REVIEW_ID = ?";
-    private static final String FIND_REVIEW_BY_FILM_ID_AND_COUNT = "SELECT * FROM REVIEWS WHERE FILM_ID = ? LIMIT ?";
-    private static final String FIND_REVIEW_BY_ALL_FILMS_AND_COUNT = "SELECT * FROM REVIEWS LIMIT ?";
+    private static final String FIND_REVIEW_BY_FILM_ID_AND_COUNT =
+            "SELECT * FROM REVIEWS WHERE FILM_ID = ? ORDER BY USEFUL DESC LIMIT ?";
+    private static final String FIND_REVIEW_BY_FILM_ID = "SELECT REVIEW_ID FROM REVIEWS WHERE FILM_ID = ?";
+    private static final String FIND_REVIEW_BY_ALL_FILMS_AND_COUNT =
+            "SELECT * FROM REVIEWS ORDER BY USEFUL DESC LIMIT ?";
     private static final String FIND_REVIEWS_ID_BY_ALL_FILMS_QUERY = "SELECT REVIEW_ID, FILM_ID FROM REVIEWS";
 
     public ReviewDbStorage(JdbcTemplate jdbc, RowMapper<Review> mapper, FeedStorage feedStorage) {
@@ -58,11 +61,14 @@ public class ReviewDbStorage extends AbstractDbStorage<Review> implements Review
                 UPDATE_REVIEW_QUERY,
                 newReview.getContent(),
                 newReview.getIsPositive(),
-                newReview.getUserId(),
-                newReview.getFilmId(),
                 newReview.getReviewId()
         );
-        feedStorage.createFeed(newReview.getUserId(), EventType.REVIEW, Operation.UPDATE, newReview.getReviewId());
+        feedStorage.createFeed(
+                getReviewById(newReview.getReviewId()).getUserId(),
+                EventType.REVIEW,
+                Operation.UPDATE,
+                newReview.getReviewId()
+        );
         log.debug("Отзыв успешно обновлен в базе данных.");
 
         return getReviewById(newReview.getReviewId());
@@ -83,6 +89,12 @@ public class ReviewDbStorage extends AbstractDbStorage<Review> implements Review
     public Review getReviewById(Long reviewId) {
         return findOne(FIND_REVIEW_BY_ID_QUERY, reviewId)
                 .orElseThrow(() -> new NotFoundException("Отзыв с id = " + reviewId + " не найден"));
+    }
+
+    @Override
+    public Set<Long> getReviewsByFilmId(Long filmId) {
+        List<Long> reviewIds = jdbc.queryForList(FIND_REVIEW_BY_FILM_ID, Long.class, filmId);
+        return new HashSet<>(reviewIds);
     }
 
     @Override
