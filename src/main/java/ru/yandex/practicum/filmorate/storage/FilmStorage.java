@@ -5,6 +5,7 @@ import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MpaRating;
 
 import java.util.Collection;
+import java.util.List;
 
 public interface FilmStorage {
     Film createFilm(Film film);
@@ -28,6 +29,8 @@ public interface FilmStorage {
     MpaRating getMpaById(int id);
 
     boolean existsById(Long id);
+
+    List<Film> searchFilms(String query, String by);
 
     Collection<Film> getFilmsByDirector(Long directorId, String sortBy);
 

@@ -21,10 +21,10 @@ import java.util.stream.Collectors;
 public class ReviewDbStorage extends AbstractDbStorage<Review> implements ReviewStorage {
     private static FeedStorage feedStorage;
     private static final String INSERT_REVIEW_QUERY =
-                    "INSERT INTO REVIEWS (CONTENT, IS_POSITIVE, USER_ID, FILM_ID) " +
+            "INSERT INTO REVIEWS (CONTENT, IS_POSITIVE, USER_ID, FILM_ID) " +
                     "VALUES (?, ?, ?, ?)";
     private static final String UPDATE_REVIEW_QUERY = "UPDATE REVIEWS SET CONTENT = ?, IS_POSITIVE = ?, " +
-                    "USER_ID = ?, FILM_ID = ? WHERE REVIEW_ID = ?";
+            "USER_ID = ?, FILM_ID = ? WHERE REVIEW_ID = ?";
     private static final String DELETE_REVIEW_QUERY = "DELETE FROM REVIEWS WHERE REVIEW_ID = ?";
     private static final String FIND_REVIEW_BY_ID_QUERY = "SELECT * FROM REVIEWS WHERE REVIEW_ID = ?";
     private static final String FIND_REVIEW_BY_FILM_ID_AND_COUNT = "SELECT * FROM REVIEWS WHERE FILM_ID = ? LIMIT ?";

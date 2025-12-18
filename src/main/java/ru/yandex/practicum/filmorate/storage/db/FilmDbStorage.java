@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.exception.InternalServerException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Director;
@@ -424,6 +425,105 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         }
 
         return result;
+    }
+
+    @Override
+    public List<Film> searchFilms(String query, String by) {
+        log.debug("Выполнение поиска фильмов. Запрос: {}, by: {}", query, by);
+
+        if (query == null || query.trim().isEmpty()) {
+            throw new ValidationException("Параметр поиска 'query' не может быть пустым");
+        }
+
+        String trimmedQuery = query.trim();
+        String trimmedBy = (by == null || by.trim().isEmpty()) ? "title" : by.trim().toLowerCase();
+
+
+        if (!trimmedBy.equals("title") &&
+                !trimmedBy.equals("director") &&
+                !trimmedBy.equals("title,director") &&
+                !trimmedBy.equals("director,title")) {
+            throw new ValidationException("Параметр 'by' может принимать значения: title, director, title,director");
+        }
+
+        boolean searchByTitle = trimmedBy.contains("title");
+        boolean searchByDirector = trimmedBy.contains("director");
+
+        String searchPattern = "%" + trimmedQuery.toLowerCase() + "%";
+
+        StringBuilder sql = new StringBuilder();
+        List<Object> params = new ArrayList<>();
+
+
+        sql.append("SELECT f.*, r.RATING_NAME, ");
+        sql.append("(SELECT COUNT(*) FROM LIKES l WHERE l.FILM_ID = f.FILM_ID) as like_count ");
+        sql.append("FROM FILMS f ");
+        sql.append("LEFT JOIN MPA_RATINGS r ON f.RATING_ID = r.RATING_ID ");
+
+
+        if (searchByTitle && searchByDirector) {
+            sql.append("WHERE (LOWER(f.FILM_NAME) LIKE ? ");
+            params.add(searchPattern);
+
+            sql.append("OR EXISTS (SELECT 1 FROM FILM_DIRECTORS fd ");
+            sql.append("JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID ");
+            sql.append("WHERE fd.FILM_ID = f.FILM_ID AND LOWER(d.DIRECTOR_NAME) LIKE ?)) ");
+            params.add(searchPattern);
+
+        } else if (searchByTitle) {
+            sql.append("WHERE LOWER(f.FILM_NAME) LIKE ? ");
+            params.add(searchPattern);
+        } else if (searchByDirector) {
+            sql.append("WHERE EXISTS (SELECT 1 FROM FILM_DIRECTORS fd ");
+            sql.append("JOIN DIRECTORS d ON fd.DIRECTOR_ID = d.DIRECTOR_ID ");
+            sql.append("WHERE fd.FILM_ID = f.FILM_ID AND LOWER(d.DIRECTOR_NAME) LIKE ?) ");
+            params.add(searchPattern);
+        }
+
+        sql.append("ORDER BY like_count DESC");
+
+        String searchQuery = sql.toString();
+        log.debug("SQL запрос поиска: {}", searchQuery);
+        log.debug("Параметры: {}", params);
+
+        List<Film> films;
+        try {
+
+            films = findMany(searchQuery, params.toArray());
+            log.debug("Найдено фильмов: {}", films.size());
+        } catch (Exception e) {
+            log.error("Ошибка при выполнении поиска: {}", e.getMessage(), e);
+            log.error("SQL: {}", searchQuery);
+            log.error("Params: {}", params);
+            throw new InternalServerException("Ошибка при выполнении поиска фильмов: " + e.getMessage());
+        }
+
+
+        if (!films.isEmpty()) {
+            Set<Long> filmIds = films.stream()
+                    .map(Film::getId)
+                    .collect(Collectors.toSet());
+
+            try {
+                Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
+                Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
+                Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByFilmIds(filmIds);
+                Map<Long, Set<Director>> directors = getDirectorsByFilmIds(filmIds);
+
+                films.forEach(film -> {
+                    film.setFilmGenres(genres.getOrDefault(film.getId(), Set.of()));
+                    film.setLikes(likes.getOrDefault(film.getId(), Set.of()));
+                    film.setReviews(reviews.getOrDefault(film.getId(), Set.of()));
+                    film.setDirectors(directors.getOrDefault(film.getId(), Set.of()));
+                });
+            } catch (Exception e) {
+                log.error("Ошибка при загрузке дополнительных данных: {}", e.getMessage(), e);
+
+            }
+        }
+
+        log.debug("Найдено {} фильмов по запросу '{}' (by={})", films.size(), trimmedQuery, trimmedBy);
+        return films;
     }
 
     private void saveFilmDirectors(Film film) {
