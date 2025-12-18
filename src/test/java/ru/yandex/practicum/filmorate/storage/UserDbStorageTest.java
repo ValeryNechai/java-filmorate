@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.db.FeedDbStorage;
 import ru.yandex.practicum.filmorate.storage.db.FriendDbStorage;
@@ -80,6 +81,39 @@ public class UserDbStorageTest {
         assertThat(createdUser1)
                 .isNotNull()
                 .hasFieldOrPropertyWithValue("name", "Ванечка Петров");
+    }
+
+    @Test
+    public void shouldDeleteUserById() {
+        User user = new User();
+        user.setEmail("delete@test.ru");
+        user.setLogin("delete_user");
+        user.setName("Удаляемый пользователь");
+        user.setBirthday(LocalDate.of(1990, 1, 1));
+
+        User createdUser = userDbStorage.createUser(user);
+        long userId = createdUser.getId();
+
+        userDbStorage.deleteUserById(userId);
+
+        assertThat(userDbStorage.existsById(userId)).isFalse();
+    }
+
+    @Test
+    public void shouldThrowExceptionWhenGettingDeletedUser() {
+        User user = new User();
+        user.setEmail("delete2@test.ru");
+        user.setLogin("delete_user2");
+        user.setName("Удаляемый пользователь 2");
+        user.setBirthday(LocalDate.of(1995, 5, 5));
+
+        User createdUser = userDbStorage.createUser(user);
+        long userId = createdUser.getId();
+
+        userDbStorage.deleteUserById(userId);
+
+        assertThatThrownBy(() -> userDbStorage.getUser(userId))
+                .isInstanceOf(NotFoundException.class);
     }
 
     @Test

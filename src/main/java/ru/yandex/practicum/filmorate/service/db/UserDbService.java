@@ -51,6 +51,14 @@ public class UserDbService implements UserService {
     }
 
     @Override
+    public void deleteUser(Long userId) {
+        if (!userStorage.existsById(userId)) {
+            throw new NotFoundException("Пользователь с id = " + userId + " не найден.");
+        }
+        userStorage.deleteUserById(userId);
+    }
+
+    @Override
     public Collection<User> getAllUsers() {
         return userStorage.getAllUsers();
     }

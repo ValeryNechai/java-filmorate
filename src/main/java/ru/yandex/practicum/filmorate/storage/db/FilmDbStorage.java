@@ -133,6 +133,13 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
     }
 
     @Override
+    public void deleteFilmById(Long filmId) {
+        jdbc.update("DELETE FROM LIKES WHERE FILM_ID = ?", filmId);
+        jdbc.update("DELETE FROM FILM_GENRES WHERE FILM_ID = ?", filmId);
+        jdbc.update("DELETE FROM FILMS WHERE FILM_ID = ?", filmId);
+    }
+
+    @Override
     public Collection<Film> getAllFilms() {
         String findAllFilmsQuery = "SELECT f.*, r.RATING_NAME FROM FILMS AS f " +
                 "LEFT OUTER JOIN MPA_RATINGS AS r ON f.RATING_ID=r.RATING_ID ORDER BY FILM_ID";
