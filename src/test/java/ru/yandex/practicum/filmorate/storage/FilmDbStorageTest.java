@@ -143,7 +143,7 @@ public class FilmDbStorageTest {
 
     @Test
     public void shouldFindPopularFilm() {
-        Collection<Film> films = filmDbStorage.getPopularFilms(1, 3, 1994);
+        Collection<Film> films = filmDbStorage.getPopularFilms(1, 2, 1994);
 
         assertThat(films)
                 .isNotNull()

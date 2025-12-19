@@ -33,16 +33,24 @@ public class LikesDbStorage implements LikesStorage {
 
     @Override
     public void addLike(Long filmId, Long userId) {
-        jdbc.update(ADD_LIKE_QUERY, userId, filmId);
+        if (existsLike(filmId, userId)) {
+            log.warn("Попытка повторно поставить лайк фильму");
+        } else {
+            jdbc.update(ADD_LIKE_QUERY, userId, filmId);
+            log.debug("Лайк успешно добавлен.");
+        }
         feedStorage.createFeed(userId, EventType.LIKE, Operation.ADD, filmId);
-        log.debug("Лайк успешно добавлен.");
     }
 
     @Override
     public void deleteLike(Long filmId, Long userId) {
-        jdbc.update(DELETE_LIKE_QUERY, userId, filmId);
+        if (existsLike(filmId, userId)) {
+            jdbc.update(DELETE_LIKE_QUERY, userId, filmId);
+            log.debug("Лайк успешно удален.");
+        } else {
+            log.warn("Попытка удалить несуществующий лайк.");
+        }
         feedStorage.createFeed(userId, EventType.LIKE, Operation.REMOVE, filmId);
-        log.debug("Лайк успешно удален.");
     }
 
     @Override

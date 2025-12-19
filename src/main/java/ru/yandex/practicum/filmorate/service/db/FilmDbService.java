@@ -81,23 +81,12 @@ public class FilmDbService implements FilmService {
     @Override
     public void addLike(Long id, Long userId) {
         validateLike(id, userId);
-        if (likesStorage.existsLike(id, userId)) {
-            log.warn("Попытка повторно поставить лайк фильму");
-            throw new ValidationException("Фильм можно лайкнуть только один раз!");
-        }
-
         likesStorage.addLike(id, userId);
     }
 
     @Override
     public void deleteLike(Long id, Long userId) {
         validateLike(id, userId);
-        if (!likesStorage.existsLike(id, userId)) {
-            log.warn("Попытка удалить несуществующий лайк. Ранее лайк этому фильму не был поставлен");
-            throw new ValidationException("Нельзя удалить несуществующий лайк. " +
-                    "Ранее лайк этому фильму не был поставлен");
-        }
-
         likesStorage.deleteLike(id, userId);
     }
 
