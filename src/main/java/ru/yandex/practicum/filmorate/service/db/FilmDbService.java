@@ -83,7 +83,17 @@ public class FilmDbService implements FilmService {
 
     @Override
     public Film getFilm(Long id) {
-        return filmStorage.getFilm(id);
+        Film film = filmStorage.getFilm(id);
+        if (film.getMpaRating() != null && film.getMpaRating().getId() != null) {
+            MpaRating fullMpa = mpaRatingStorage.getMpaById(film.getMpaRating().getId());
+            film.setMpaRating(fullMpa);
+        }
+
+        film.setFilmGenres(new LinkedHashSet<>(genreStorage.getGenresByFilmId(id)));
+        film.setLikes(likesStorage.getLikesByFilmId(id));
+        film.setReviews(reviewStorage.getReviewsByFilmId(id));
+        film.setDirectors(filmStorage.getDirectorsByFilmId(id));
+        return film;
     }
 
     @Override

@@ -103,7 +103,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         saveFilmDirectors(film);
         log.debug("Фильм {} успешно добавлен", film.getName());
 
-        return getFilm(id);
+        return film;
     }
 
     @Override
@@ -130,7 +130,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         updateFilmDirectors(newFilm);
         log.debug("Фильм с id {} успешно обновлен.", newFilm.getId());
 
-        return getFilm(newFilm.getId());
+        return newFilm;
     }
 
     @Override
@@ -157,10 +157,10 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
                 "LEFT OUTER JOIN MPA_RATINGS AS r ON f.RATING_ID=r.RATING_ID " +
                 "WHERE f.FILM_ID = ?";
 
-        Film film = findOne(findFilmQuery, id)
+        return findOne(findFilmQuery, id)
                 .orElseThrow(() -> new NotFoundException("Фильм с id = " + id + " не найден"));
 
-        if (film.getMpaRating() != null && film.getMpaRating().getId() != null) {
+        /*if (film.getMpaRating() != null && film.getMpaRating().getId() != null) {
             MpaRating fullMpa = mpaRatingStorage.getMpaById(film.getMpaRating().getId());
             film.setMpaRating(fullMpa);
         }
@@ -169,7 +169,17 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         film.setLikes(likesStorage.getLikesByFilmId(id));
         film.setReviews(reviewStorage.getReviewsByFilmId(id));
         film.setDirectors(getDirectorsByFilmId(id));
-        return film;
+        return film;*/
+        /*List<Genre> genres = jdbc.query(findFilmQuery, (rs, rowNum) -> {
+            // Создаем Genre напрямую, как в getGenresByAllFilms()
+            return new Genre(
+                    rs.getInt("GENRE_ID"),
+                    rs.getString("GENRE_NAME")
+            );
+        }, id);
+
+        log.info("Найдено {} жанров для фильма {}", genres.size(), id);
+        return genres;*/
     }
 
     @Override
@@ -367,7 +377,9 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
             }
         }
 
-        return result;
+        return result.stream()
+                .sorted(Comparator.comparing(Genre::getId))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     @Override

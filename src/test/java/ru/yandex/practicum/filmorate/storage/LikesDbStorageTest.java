@@ -66,7 +66,7 @@ public class LikesDbStorageTest {
     public void shouldAddLike() {
         likesDbStorage.addLike(createdFilm1.getId(), createdUser1.getId());
 
-        assertThat(filmDbStorage.getFilm(createdFilm1.getId()).getLikes())
+        assertThat(likesDbStorage.getLikesByFilmId(createdFilm1.getId()))
                 .isNotNull()
                 .hasSize(1);
     }
