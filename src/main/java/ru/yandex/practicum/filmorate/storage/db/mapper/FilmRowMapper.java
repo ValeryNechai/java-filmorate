@@ -28,10 +28,7 @@ public class FilmRowMapper implements RowMapper<Film> {
             mpa.setName(ratingName);
             film.setMpaRating(mpa);
         } else {
-            MpaRating defaultMpa = new MpaRating();
-            defaultMpa.setId(1);
-            defaultMpa.setName("G");
-            film.setMpaRating(defaultMpa);
+            film.setMpaRating(new MpaRating(1, "G"));
         }
 
         return film;

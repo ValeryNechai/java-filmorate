@@ -14,4 +14,6 @@ public interface LikesStorage {
     Map<Long, Set<Long>> getLikesByAllFilms();
 
     Map<Long, Set<Long>> getLikesByFilmIds(Set<Long> filmIds);
+
+    boolean existsLike(Long filmId, Long userId);
 }

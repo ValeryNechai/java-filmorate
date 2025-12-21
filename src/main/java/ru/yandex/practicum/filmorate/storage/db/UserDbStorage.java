@@ -2,29 +2,23 @@ package ru.yandex.practicum.filmorate.storage.db;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Component
-@Primary
 @Slf4j
 public class UserDbStorage extends AbstractDbStorage<User> implements UserStorage {
-    private final FriendStorage friendStorage;
 
     @Autowired
-    public UserDbStorage(JdbcTemplate jdbc, RowMapper<User> mapper, FriendStorage friendStorage) {
+    public UserDbStorage(JdbcTemplate jdbc, RowMapper<User> mapper) {
         super(jdbc, mapper);
-        this.friendStorage = friendStorage;
     }
 
     @Override
@@ -61,24 +55,47 @@ public class UserDbStorage extends AbstractDbStorage<User> implements UserStorag
     }
 
     @Override
+    @Transactional
+    public void deleteUserById(Long userId) {
+        if (!existsById(userId)) {
+            throw new NotFoundException("Пользователь с id = " + userId + " не найден");
+        }
+
+        jdbc.update("""
+                DELETE FROM REVIEW_RATINGS
+                WHERE USER_ID = ?
+                   OR REVIEW_ID IN (
+                       SELECT REVIEW_ID FROM REVIEWS WHERE USER_ID = ?
+                   )
+                """, userId, userId);
+
+        jdbc.update("DELETE FROM REVIEWS WHERE USER_ID = ?", userId);
+
+        jdbc.update("DELETE FROM LIKES WHERE USER_ID = ?", userId);
+
+        jdbc.update(
+                "DELETE FROM FRIENDSHIPS WHERE USER_ID = ? OR FRIEND_ID = ?",
+                userId, userId
+        );
+
+        jdbc.update("DELETE FROM FEEDS WHERE USER_ID = ?", userId);
+
+        jdbc.update("DELETE FROM USERS WHERE USER_ID = ?", userId);
+    }
+
+
+    @Override
     public Collection<User> getAllUsers() {
-        String findAllUsersQuery = "SELECT * FROM USERS";
+        String findAllUsersQuery = "SELECT * FROM USERS ORDER BY USER_ID";
 
-        Map<Long, Set<Long>> friends = friendStorage.getFriendsByAllUsers();
-
-        return findMany(findAllUsersQuery).stream()
-                .peek(user -> user.setFriends(friends.get(user.getId())))
-                .collect(Collectors.toList());
+        return findMany(findAllUsersQuery);
     }
 
     @Override
     public User getUser(Long id) {
         String findUserQuery = "SELECT * FROM USERS WHERE USER_ID = ?";
-        User user = findOne(findUserQuery, id)
+        return findOne(findUserQuery, id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id = " + id + " не найден"));
-        user.setFriends(friendStorage.getAllFriendsIdByUserId(id));
-
-        return user;
     }
 
     @Override

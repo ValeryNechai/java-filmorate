@@ -11,11 +11,8 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.db.*;
-import ru.yandex.practicum.filmorate.storage.db.mapper.FilmRowMapper;
-import ru.yandex.practicum.filmorate.storage.db.mapper.GenreRowMapper;
-import ru.yandex.practicum.filmorate.storage.db.mapper.MpaRatingRowMapper;
+import ru.yandex.practicum.filmorate.storage.db.mapper.*;
 import ru.yandex.practicum.filmorate.storage.db.UserDbStorage;
-import ru.yandex.practicum.filmorate.storage.db.mapper.UserRowMapper;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -26,7 +23,8 @@ import static org.assertj.core.api.Assertions.*;
 @JdbcTest
 @Import({GenreDbStorage.class, GenreRowMapper.class, FilmDbStorage.class, FilmRowMapper.class,
         MpaRatingRowMapper.class, MpaRatingDbStorage.class, LikesDbStorage.class, UserRowMapper.class,
-        UserDbStorage.class, FriendDbStorage.class})
+        UserDbStorage.class, FriendDbStorage.class, ReviewDbStorage.class, ReviewRowMapper.class,
+        FeedDbStorage.class, FeedRowMapper.class})
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class LikesDbStorageTest {
@@ -68,7 +66,7 @@ public class LikesDbStorageTest {
     public void shouldAddLike() {
         likesDbStorage.addLike(createdFilm1.getId(), createdUser1.getId());
 
-        assertThat(filmDbStorage.getFilm(createdFilm1.getId()).getLikes())
+        assertThat(likesDbStorage.getLikesByFilmId(createdFilm1.getId()))
                 .isNotNull()
                 .hasSize(1);
     }

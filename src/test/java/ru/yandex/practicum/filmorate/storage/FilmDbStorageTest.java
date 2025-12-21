@@ -7,24 +7,25 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.db.*;
-import ru.yandex.practicum.filmorate.storage.db.mapper.FilmRowMapper;
-import ru.yandex.practicum.filmorate.storage.db.mapper.GenreRowMapper;
-import ru.yandex.practicum.filmorate.storage.db.mapper.MpaRatingRowMapper;
+import ru.yandex.practicum.filmorate.storage.db.mapper.*;
 
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @JdbcTest
 @Import({GenreDbStorage.class, GenreRowMapper.class, FilmDbStorage.class, FilmRowMapper.class,
         MpaRatingRowMapper.class, MpaRatingDbStorage.class, LikesDbStorage.class,
-        LikesDbStorage.class})
+        LikesDbStorage.class, ReviewDbStorage.class, ReviewRowMapper.class,
+        FeedDbStorage.class, FeedRowMapper.class})
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class FilmDbStorageTest {
@@ -102,6 +103,25 @@ public class FilmDbStorageTest {
     }
 
     @Test
+    public void shouldDeleteFilmById() {
+        long filmId = createdFilm1.getId();
+
+        filmDbStorage.deleteFilmById(filmId);
+
+        assertThat(filmDbStorage.existsById(filmId)).isFalse();
+    }
+
+    @Test
+    public void shouldThrowExceptionWhenGettingDeletedFilm() {
+        long filmId = createdFilm2.getId();
+
+        filmDbStorage.deleteFilmById(filmId);
+
+        assertThatThrownBy(() -> filmDbStorage.getFilm(filmId))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
     public void shouldFindAllFilms() {
         Collection<Film> films = filmDbStorage.getAllFilms();
 
@@ -123,13 +143,13 @@ public class FilmDbStorageTest {
 
     @Test
     public void shouldFindPopularFilm() {
-        Collection<Film> films = filmDbStorage.getPopularFilms(1);
+        Collection<Film> films = filmDbStorage.getPopularFilms(1, 2, 1994);
 
         assertThat(films)
                 .isNotNull()
                 .hasSize(1)
                 .extracting(Film::getName)
-                .contains("Матрица");
+                .contains("Форрест Гамп");
     }
 
     @Test

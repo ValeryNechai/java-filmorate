@@ -18,8 +18,8 @@ import java.util.stream.Collectors;
 public class LikesDbStorage implements LikesStorage {
     private final JdbcTemplate jdbc;
     private static final String FIND_LIKES_BY_FILM_ID_QUERY = "SELECT USER_ID FROM LIKES WHERE FILM_ID = ?";
-    private static final String ADD_LIKE_QUERY = "INSERT INTO LIKES(USER_ID, FILM_ID) VALUES (?, ?)";
-    private static final String DELETE_LIKE_QUERY = "DELETE FROM LIKES WHERE FILM_ID = ? AND USER_ID = ?";
+    private static final String ADD_LIKE_QUERY = "INSERT INTO LIKES (USER_ID, FILM_ID) VALUES (?, ?)";
+    private static final String DELETE_LIKE_QUERY = "DELETE FROM LIKES WHERE USER_ID = ? AND FILM_ID = ?";
     private static final String FIND_LIKES_BY_ALL_FILMS_QUERY = "SELECT FILM_ID, USER_ID FROM LIKES";
 
     @Override
@@ -30,14 +30,22 @@ public class LikesDbStorage implements LikesStorage {
 
     @Override
     public void addLike(Long filmId, Long userId) {
-        jdbc.update(ADD_LIKE_QUERY, userId, filmId);
-        log.debug("Лайк успешно добавлен.");
+        if (existsLike(filmId, userId)) {
+            log.warn("Попытка повторно поставить лайк фильму");
+        } else {
+            jdbc.update(ADD_LIKE_QUERY, userId, filmId);
+            log.debug("Лайк успешно добавлен.");
+        }
     }
 
     @Override
     public void deleteLike(Long filmId, Long userId) {
-        jdbc.update(DELETE_LIKE_QUERY, filmId, userId);
-        log.debug("Лайк успешно удален.");
+        if (existsLike(filmId, userId)) {
+            jdbc.update(DELETE_LIKE_QUERY, userId, filmId);
+            log.debug("Лайк успешно удален.");
+        } else {
+            log.warn("Попытка удалить несуществующий лайк.");
+        }
     }
 
     @Override
@@ -78,5 +86,12 @@ public class LikesDbStorage implements LikesStorage {
                 return result;
             }
         });
+    }
+
+    @Override
+    public boolean existsLike(Long filmId, Long userId) {
+        String existsLikeQuery = "SELECT COUNT(*) FROM LIKES WHERE USER_ID = ? AND FILM_ID = ?";
+        Integer count = jdbc.queryForObject(existsLikeQuery, Integer.class, userId, filmId);
+        return count != null && count > 0;
     }
 }
