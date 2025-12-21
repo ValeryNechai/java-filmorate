@@ -33,6 +33,10 @@ public class FilmDbService implements FilmService {
     private static final int MAX_DESCRIPTION_LENGTH = 200;
     private static final LocalDate DECEMBER_1895 = LocalDate.of(1895, 12, 28);
     private static final int MIN_LENGTH_FOR_SEARCH = 2;
+    private static final int MIN_MPA_ID = 1;
+    private static final int MAX_MPA_ID = 5;
+    private static final int MIN_GENRE_ID = 1;
+    private static final int MAX_GENRE_ID = 6;
 
     @Autowired
     public FilmDbService(FilmStorage filmStorage, UserStorage userStorage, FeedStorage feedStorage,
@@ -53,6 +57,11 @@ public class FilmDbService implements FilmService {
     @Override
     public Film createFilm(Film film) {
         validateFilm(film);
+        Integer mpaId = validateMpa(film);
+        film.setMpaRating(mpaRatingStorage.getMpaById(mpaId));
+        Set<Genre> preparedGenres = validateGenres(film);
+        film.setFilmGenres(new HashSet<>(preparedGenres));
+
         return filmStorage.createFilm(film);
     }
 
@@ -62,6 +71,10 @@ public class FilmDbService implements FilmService {
             throw new NotFoundException("Фильм с id = " + newFilm.getId() + " не найден.");
         }
         validateFilm(newFilm);
+        Integer mpaId = validateMpa(newFilm);
+        newFilm.setMpaRating(mpaRatingStorage.getMpaById(mpaId));
+        Set<Genre> preparedGenres = validateGenres(newFilm);
+        newFilm.setFilmGenres(new HashSet<>(preparedGenres));
 
         return filmStorage.updateFilm(newFilm);
     }
@@ -366,5 +379,70 @@ public class FilmDbService implements FilmService {
                 .peek(film -> film.setReviews(reviews.getOrDefault(film.getId(), Set.of())))
                 .peek(film -> film.setDirectors(directors.getOrDefault(film.getId(), Set.of())))
                 .collect(Collectors.toList());
+    }
+
+    private Integer validateMpa(Film film) {
+        if (film.getMpaRating() == null || film.getMpaRating().getId() == null) {
+            log.debug("MPA не указан, используется значение по умолчанию: 1");
+            film.setMpaRating(new MpaRating(1, null));
+            return 1;
+        }
+
+        Integer mpaId = film.getMpaRating().getId();
+
+        if (mpaId < MIN_MPA_ID || mpaId > MAX_MPA_ID) {
+            throw new NotFoundException(
+                    String.format("ID MPA рейтинга должен быть от %d до %d. Получено: %d",
+                            MIN_MPA_ID, MAX_MPA_ID, mpaId)
+            );
+        }
+        // Проверка существования в БД
+        try {
+            MpaRating mpa = mpaRatingStorage.getMpaById(mpaId);
+            film.setMpaRating(mpa);
+            log.debug("MPA рейтинг ID {} валиден: {}", mpaId, mpa.getName());
+            return mpaId;
+        } catch (NotFoundException e) {
+            throw new NotFoundException(
+                    String.format("MPA рейтинг с id = %d не найден", mpaId)
+            );
+        }
+    }
+
+    private Set<Genre> validateGenres(Film film) {
+        Set<Genre> result = new LinkedHashSet<>();
+
+        if (film.getFilmGenres() == null || film.getFilmGenres().isEmpty()) {
+            log.debug("Фильм не имеет жанров");
+            return result;
+        }
+
+        for (Genre genre : film.getFilmGenres()) {
+            if (genre == null || genre.getId() == null) {
+                continue;
+            }
+
+            Integer genreId = genre.getId();
+
+            // Проверка диапазона
+            if (genreId < MIN_GENRE_ID || genreId > MAX_GENRE_ID) {
+                throw new NotFoundException(
+                        String.format("ID жанра должен быть от %d до %d. Получено: %d",
+                                MIN_GENRE_ID, MAX_GENRE_ID, genreId)
+                );
+            }
+
+            // Проверка существования в БД
+            Genre dbGenre = genreStorage.getGenreById(genreId);
+            // Добавляем только если еще нет (удаляем дубликаты)
+            if (!result.contains(dbGenre)) {
+                result.add(dbGenre);
+                log.debug("Жанр ID {} валиден: {}", genreId, dbGenre.getName());
+            }
+        }
+
+        return result.stream()
+                .sorted(Comparator.comparing(Genre::getId))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 }

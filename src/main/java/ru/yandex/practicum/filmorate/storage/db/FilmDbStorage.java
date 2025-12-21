@@ -9,8 +9,6 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.MpaRating;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
 import java.util.*;
@@ -19,14 +17,6 @@ import java.util.stream.Collectors;
 @Repository
 @Slf4j
 public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorage {
-    private final GenreStorage genreStorage;
-    private final MpaRatingStorage mpaRatingStorage;
-    private final LikesStorage likesStorage;
-    private final ReviewStorage reviewStorage;
-    private static final int MIN_MPA_ID = 1;
-    private static final int MAX_MPA_ID = 5;
-    private static final int MIN_GENRE_ID = 1;
-    private static final int MAX_GENRE_ID = 6;
     private static final String INSERT_FILM_DIRECTOR =
             "INSERT INTO FILM_DIRECTORS (FILM_ID, DIRECTOR_ID) VALUES (?, ?)";
 
@@ -71,13 +61,8 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
                     """;
 
 
-    public FilmDbStorage(JdbcTemplate jdbc, RowMapper<Film> mapper, GenreStorage genreStorage,
-                         MpaRatingStorage mpaRatingStorage, LikesStorage likesStorage, ReviewStorage reviewStorage) {
+    public FilmDbStorage(JdbcTemplate jdbc, RowMapper<Film> mapper) {
         super(jdbc, mapper);
-        this.genreStorage = genreStorage;
-        this.mpaRatingStorage = mpaRatingStorage;
-        this.likesStorage = likesStorage;
-        this.reviewStorage = reviewStorage;
     }
 
     @Override
@@ -85,18 +70,13 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         String insertFilmQuery = "INSERT INTO FILMS(FILM_NAME, DESCRIPTION, RELEASE_DATE, " +
                 "DURATION, RATING_ID) VALUES (?, ?, ?, ?, ?)";
 
-        Integer mpaId = validateMpa(film);
-
-        Set<Genre> preparedGenres = validateGenres(film);
-        film.setFilmGenres(new HashSet<>(preparedGenres));
-
         long id = insert(
                 insertFilmQuery,
                 film.getName(),
                 film.getDescription(),
                 film.getReleaseDate(),
                 film.getDuration(),
-                mpaId
+                film.getMpaRating().getId()
         );
         film.setId(id);
         saveFilmGenres(film);
@@ -111,18 +91,13 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         String updateQuery = "UPDATE FILMS SET FILM_NAME = ?, DESCRIPTION = ?, RELEASE_DATE = ?, " +
                 "DURATION = ?, RATING_ID = ? WHERE FILM_ID = ?";
 
-        Integer mpaId = validateMpa(newFilm);
-
-        Set<Genre> preparedGenres = validateGenres(newFilm);
-        newFilm.setFilmGenres(new HashSet<>(preparedGenres));
-
         update(
                 updateQuery,
                 newFilm.getName(),
                 newFilm.getDescription(),
                 newFilm.getReleaseDate(),
                 newFilm.getDuration(),
-                mpaId,
+                newFilm.getMpaRating().getId(),
                 newFilm.getId()
         );
 
@@ -159,27 +134,6 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
 
         return findOne(findFilmQuery, id)
                 .orElseThrow(() -> new NotFoundException("Фильм с id = " + id + " не найден"));
-
-        /*if (film.getMpaRating() != null && film.getMpaRating().getId() != null) {
-            MpaRating fullMpa = mpaRatingStorage.getMpaById(film.getMpaRating().getId());
-            film.setMpaRating(fullMpa);
-        }
-
-        film.setFilmGenres(new LinkedHashSet<>(genreStorage.getGenresByFilmId(id)));
-        film.setLikes(likesStorage.getLikesByFilmId(id));
-        film.setReviews(reviewStorage.getReviewsByFilmId(id));
-        film.setDirectors(getDirectorsByFilmId(id));
-        return film;*/
-        /*List<Genre> genres = jdbc.query(findFilmQuery, (rs, rowNum) -> {
-            // Создаем Genre напрямую, как в getGenresByAllFilms()
-            return new Genre(
-                    rs.getInt("GENRE_ID"),
-                    rs.getString("GENRE_NAME")
-            );
-        }, id);
-
-        log.info("Найдено {} жанров для фильма {}", genres.size(), id);
-        return genres;*/
     }
 
     @Override
@@ -315,71 +269,6 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
 
         saveFilmGenres(film);
         log.debug("Жанры успешно обновлены.");
-    }
-
-    private Integer validateMpa(Film film) {
-        if (film.getMpaRating() == null || film.getMpaRating().getId() == null) {
-            log.debug("MPA не указан, используется значение по умолчанию: 1");
-            film.setMpaRating(new MpaRating(1, null));
-            return 1;
-        }
-
-        Integer mpaId = film.getMpaRating().getId();
-
-        if (mpaId < MIN_MPA_ID || mpaId > MAX_MPA_ID) {
-            throw new NotFoundException(
-                    String.format("ID MPA рейтинга должен быть от %d до %d. Получено: %d",
-                            MIN_MPA_ID, MAX_MPA_ID, mpaId)
-            );
-        }
-        // Проверка существования в БД
-        try {
-            MpaRating mpa = mpaRatingStorage.getMpaById(mpaId);
-            film.setMpaRating(mpa);
-            log.debug("MPA рейтинг ID {} валиден: {}", mpaId, mpa.getName());
-            return mpaId;
-        } catch (NotFoundException e) {
-            throw new NotFoundException(
-                    String.format("MPA рейтинг с id = %d не найден", mpaId)
-            );
-        }
-    }
-
-    private Set<Genre> validateGenres(Film film) {
-        Set<Genre> result = new LinkedHashSet<>();
-
-        if (film.getFilmGenres() == null || film.getFilmGenres().isEmpty()) {
-            log.debug("Фильм не имеет жанров");
-            return result;
-        }
-
-        for (Genre genre : film.getFilmGenres()) {
-            if (genre == null || genre.getId() == null) {
-                continue;
-            }
-
-            Integer genreId = genre.getId();
-
-            // Проверка диапазона
-            if (genreId < MIN_GENRE_ID || genreId > MAX_GENRE_ID) {
-                throw new NotFoundException(
-                        String.format("ID жанра должен быть от %d до %d. Получено: %d",
-                                MIN_GENRE_ID, MAX_GENRE_ID, genreId)
-                );
-            }
-
-            // Проверка существования в БД
-            Genre dbGenre = genreStorage.getGenreById(genreId);
-            // Добавляем только если еще нет (удаляем дубликаты)
-            if (!result.contains(dbGenre)) {
-                result.add(dbGenre);
-                log.debug("Жанр ID {} валиден: {}", genreId, dbGenre.getName());
-            }
-        }
-
-        return result.stream()
-                .sorted(Comparator.comparing(Genre::getId))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     @Override

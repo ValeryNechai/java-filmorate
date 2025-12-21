@@ -37,6 +37,7 @@ public class RecommendationsDbStorageTest {
     private final FilmDbStorage filmDbStorage;
     private final LikesDbStorage likesDbStorage;
     private final UserDbStorage userDbStorage;
+    private final MpaRatingDbStorage mpaRatingDbStorage;
     private final JdbcTemplate jdbc;
 
     @BeforeEach
@@ -53,12 +54,27 @@ public class RecommendationsDbStorageTest {
         User u1 = createUser("u1@mail.ru", "u1", "User1");
         User u2 = createUser("u2@mail.ru", "u2", "User2");
 
-        Film f1 = createFilm("Film1");
-        Film f2 = createFilm("Film2");
+        Film film1 = new Film();
+        film1.setName("Матрица");
+        film1.setDescription("Хакер Нео узнает, что его мир - виртуальная реальность");
+        film1.setReleaseDate(LocalDate.of(1999, 3, 31));
+        film1.setDuration(136);
+        film1.setMpaRating(mpaRatingDbStorage.getMpaById(2));
+        Film f1 = filmDbStorage.createFilm(film1);
+
+        Film film2 = new Film();
+        film2.setName("Форрест Гамп");
+        film2.setDescription("История человека с низким IQ, который стал свидетелем ключевых событий истории США");
+        film2.setReleaseDate(LocalDate.of(1994, 6, 23));
+        film2.setDuration(142);
+        film2.setMpaRating(mpaRatingDbStorage.getMpaById(3));
+        Film f2 = filmDbStorage.createFilm(film2);
 
         likesDbStorage.addLike(f1.getId(), u1.getId());
         likesDbStorage.addLike(f1.getId(), u2.getId());
         likesDbStorage.addLike(f2.getId(), u2.getId());
+        f1.setLikes(likesDbStorage.getLikesByFilmId(f1.getId()));
+        f2.setLikes(likesDbStorage.getLikesByFilmId(f2.getId()));
 
         Collection<Film> rec = filmDbStorage.getRecommendations(u1.getId());
 
@@ -73,8 +89,15 @@ public class RecommendationsDbStorageTest {
         User u1 = createUser("u1@mail.ru", "u1", "User1");
         createUser("u2@mail.ru", "u2", "User2");
 
-        Film f1 = createFilm("Film1");
+        Film film1 = new Film();
+        film1.setName("Матрица");
+        film1.setDescription("Хакер Нео узнает, что его мир - виртуальная реальность");
+        film1.setReleaseDate(LocalDate.of(1999, 3, 31));
+        film1.setDuration(136);
+        film1.setMpaRating(mpaRatingDbStorage.getMpaById(2));
+        Film f1 = filmDbStorage.createFilm(film1);
         likesDbStorage.addLike(f1.getId(), u1.getId());
+        f1.setLikes(likesDbStorage.getLikesByFilmId(f1.getId()));
 
         Collection<Film> rec = filmDbStorage.getRecommendations(u1.getId());
 
@@ -87,15 +110,40 @@ public class RecommendationsDbStorageTest {
         User u2 = createUser("u2@mail.ru", "u2", "User2");
         User u3 = createUser("u3@mail.ru", "u3", "User3");
 
-        Film f1 = createFilm("Film1");
-        Film f2 = createFilm("Film2");
-        Film f3 = createFilm("Film3");
+        Film film1 = new Film();
+        film1.setName("Матрица");
+        film1.setDescription("Хакер Нео узнает, что его мир - виртуальная реальность");
+        film1.setReleaseDate(LocalDate.of(1999, 3, 31));
+        film1.setDuration(136);
+        film1.setMpaRating(mpaRatingDbStorage.getMpaById(2));
+        Film f1 = filmDbStorage.createFilm(film1);
+
+        Film film2 = new Film();
+        film2.setName("Форрест Гамп");
+        film2.setDescription("История человека с низким IQ, который стал свидетелем ключевых событий истории США");
+        film2.setReleaseDate(LocalDate.of(1994, 6, 23));
+        film2.setDuration(142);
+        film2.setMpaRating(mpaRatingDbStorage.getMpaById(3));
+        Film f2 = filmDbStorage.createFilm(film2);
+
+        Film film3 = new Film();
+        film3.setName("Криминальное чтиво");
+        film3.setDescription("Истории нескольких преступников в Лос-Анджелесе, " +
+                "переплетающиеся в нелинейном повествовании");
+        film3.setReleaseDate(LocalDate.of(1994, 10, 14));
+        film3.setDuration(154);
+        film3.setMpaRating(mpaRatingDbStorage.getMpaById(4));
+        Film f3 = filmDbStorage.createFilm(film3);
 
         likesDbStorage.addLike(f1.getId(), u1.getId());
         likesDbStorage.addLike(f1.getId(), u2.getId());
         likesDbStorage.addLike(f2.getId(), u2.getId());
         likesDbStorage.addLike(f1.getId(), u3.getId());
         likesDbStorage.addLike(f3.getId(), u3.getId());
+        f1.setLikes(likesDbStorage.getLikesByFilmId(f1.getId()));
+        f2.setLikes(likesDbStorage.getLikesByFilmId(f2.getId()));
+        f3.setLikes(likesDbStorage.getLikesByFilmId(f3.getId()));
+
         Collection<Film> rec = filmDbStorage.getRecommendations(u1.getId());
 
         assertThat(rec)
@@ -111,19 +159,5 @@ public class RecommendationsDbStorageTest {
         user.setName(name);
         user.setBirthday(LocalDate.of(1990, 1, 1));
         return userDbStorage.createUser(user);
-    }
-
-    private Film createFilm(String name) {
-        Film film = new Film();
-        film.setName(name);
-        film.setDescription("desc");
-        film.setReleaseDate(LocalDate.of(2000, 1, 1));
-        film.setDuration(100);
-
-        film.setMpaRating(null);
-
-        film.setFilmGenres(null);
-
-        return filmDbStorage.createFilm(film);
     }
 }
