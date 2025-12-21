@@ -148,21 +148,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         String findAllFilmsQuery = "SELECT f.*, r.RATING_NAME FROM FILMS AS f " +
                 "LEFT OUTER JOIN MPA_RATINGS AS r ON f.RATING_ID=r.RATING_ID ORDER BY FILM_ID";
 
-        List<Film> films = findMany(findAllFilmsQuery);
-        Set<Long> filmIds = films.stream()
-                .map(Film::getId)
-                .collect(Collectors.toSet());
-
-        Map<Long, Set<Genre>> genres = genreStorage.getGenresByAllFilms();
-        Map<Long, Set<Long>> likes = likesStorage.getLikesByAllFilms();
-        Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByAllFilms();
-        Map<Long, Set<Director>> directors = getDirectorsByFilmIds(filmIds);
-        return films.stream()
-                .peek(film -> film.setFilmGenres(genres.getOrDefault(film.getId(), Set.of())))
-                .peek(film -> film.setLikes(likes.getOrDefault(film.getId(), Set.of())))
-                .peek(film -> film.setReviews(reviews.getOrDefault(film.getId(), Set.of())))
-                .peek(film -> film.setDirectors(directors.getOrDefault(film.getId(), Set.of())))
-                .collect(Collectors.toList());
+        return findMany(findAllFilmsQuery);
     }
 
     @Override
@@ -191,49 +177,43 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
 
         List<Object> params = new ArrayList<>();
         StringBuilder findPopularFilms = new StringBuilder(
-                "SELECT f.*, r.RATING_NAME, " +
-                        "(SELECT COUNT(*) FROM PUBLIC.LIKES l WHERE l.FILM_ID = f.FILM_ID) as like_count " +
+                "SELECT f.*, r.RATING_NAME, like_counts.total_likes " +
                         "FROM PUBLIC.FILMS f " +
-                        "LEFT JOIN PUBLIC.MPA_RATINGS r ON f.RATING_ID = r.RATING_ID "
+                        "LEFT JOIN PUBLIC.MPA_RATINGS r ON f.RATING_ID = r.RATING_ID " +
+                        "LEFT JOIN ( " +
+                        "    SELECT FILM_ID, COUNT(*) as total_likes " +
+                        "    FROM LIKES " +
+                        "    GROUP BY FILM_ID " +
+                        ") like_counts ON f.FILM_ID = like_counts.FILM_ID "
         );
 
-        boolean hasFilter = false;
-        if (genreId != null || year != null) {
-            findPopularFilms.append("WHERE ");
+        List<String> whereConditions = new ArrayList<>();
 
-            if (genreId != null) {
-                findPopularFilms.append("f.FILM_ID IN (SELECT FILM_ID FROM PUBLIC.FILM_GENRES WHERE GENRE_ID = ?) ");
-                params.add(genreId);
-                hasFilter = true;
-            }
-
-            if (year != null) {
-                if (hasFilter) {
-                    findPopularFilms.append("AND ");
-                }
-                findPopularFilms.append("EXTRACT(YEAR FROM CAST(f.RELEASE_DATE AS DATE)) = ? ");
-                params.add(year);
-            }
+        if (genreId != null) {
+            findPopularFilms.append("INNER JOIN PUBLIC.FILM_GENRES fg ON f.FILM_ID = fg.FILM_ID ");
+            whereConditions.add("fg.GENRE_ID = ?");
+            params.add(genreId);
         }
 
-        findPopularFilms.append("ORDER BY like_count DESC, f.FILM_ID ASC LIMIT ?");
+        if (year != null) {
+            whereConditions.add("EXTRACT(YEAR FROM CAST(f.RELEASE_DATE AS DATE)) = ?");
+            params.add(year);
+        }
+
+        if (!whereConditions.isEmpty()) {
+            findPopularFilms.append("WHERE ");
+            findPopularFilms.append(String.join(" AND ", whereConditions));
+        }
+
+        if (genreId != null) {
+            findPopularFilms.append("GROUP BY f.FILM_ID, r.RATING_NAME, like_counts.total_likes ");
+        }
+
+        findPopularFilms.append("ORDER BY COALESCE(like_counts.total_likes, 0) DESC, f.FILM_ID ASC LIMIT ?");
         params.add(count);
 
-        List<Film> films = findMany(String.valueOf(findPopularFilms), params.toArray());
 
-        Set<Long> filmIds = films.stream().map(Film::getId).collect(Collectors.toSet());
-
-        Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
-        Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
-        Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByFilmIds(filmIds);
-        Map<Long, Set<Director>> directors = getDirectorsByFilmIds(filmIds);
-        films.forEach(film -> {
-            film.setLikes(likes.getOrDefault(film.getId(), Set.of()));
-            film.setFilmGenres(genres.getOrDefault(film.getId(), Set.of()));
-            film.setReviews(reviews.getOrDefault(film.getId(), Set.of()));
-            film.setDirectors(directors.getOrDefault(film.getId(), Set.of()));
-        });
-        return films;
+        return findMany(findPopularFilms.toString(), params.toArray());
     }
 
     @Override
@@ -248,41 +228,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
                         "AND l2.USER_ID = ? " +
                         "ORDER BY f.FILM_ID ";
 
-        List<Film> films = findMany(findCommonFilms, userId, friendId);
-        Set<Long> filmIds = films.stream().map(Film::getId).collect(Collectors.toSet());
-
-        Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
-        Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
-        Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByFilmIds(filmIds);
-        Map<Long, Set<Director>> directors = getDirectorsByFilmIds(filmIds);
-
-        films.forEach(film -> {
-            film.setLikes(likes.getOrDefault(film.getId(), Set.of()));
-            film.setFilmGenres(genres.getOrDefault(film.getId(), Set.of()));
-            film.setReviews(reviews.getOrDefault(film.getId(), Set.of()));
-            film.setDirectors(directors.getOrDefault(film.getId(), Set.of()));
-        });
-        return films;
-    }
-
-    @Override
-    public Collection<Genre> getAllGenres() {
-        return genreStorage.getAllGenres();
-    }
-
-    @Override
-    public Genre getGenreById(int id) {
-        return genreStorage.getGenreById(id);
-    }
-
-    @Override
-    public Collection<MpaRating> getAllMpa() {
-        return mpaRatingStorage.getAllMpa();
-    }
-
-    @Override
-    public MpaRating getMpaById(int id) {
-        return mpaRatingStorage.getMpaById(id);
+        return findMany(findCommonFilms, userId, friendId);
     }
 
     @Override
@@ -324,38 +270,23 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
             return List.of();
         }
         String recFilmsQuery =
-                "SELECT f.*, r.RATING_NAME " +
+                "SELECT f.*, r.RATING_NAME, like_counts.total_likes " +
                         "FROM FILMS f " +
                         "LEFT JOIN MPA_RATINGS r ON f.RATING_ID = r.RATING_ID " +
-                        "JOIN LIKES l ON f.FILM_ID = l.FILM_ID " +
-                        "WHERE l.USER_ID = ? " +
-                        "  AND NOT EXISTS ( " +
-                        "      SELECT 1 FROM LIKES l3 " +
-                        "      WHERE l3.USER_ID = ? AND l3.FILM_ID = f.FILM_ID " +
-                        "  ) " +
-                        "ORDER BY " +
-                        "  (SELECT COUNT(*) FROM LIKES ll WHERE ll.FILM_ID = f.FILM_ID) DESC, " +
-                        "  f.FILM_ID ASC";
+                        "LEFT JOIN ( " +
+                        "    SELECT FILM_ID, COUNT(*) as total_likes " +
+                        "    FROM LIKES " +
+                        "    GROUP BY FILM_ID " +
+                        ") like_counts ON f.FILM_ID = like_counts.FILM_ID " +
+                        "WHERE f.FILM_ID IN ( " +
+                        "    SELECT FILM_ID FROM LIKES WHERE USER_ID = ? " +
+                        ") " +
+                        "AND f.FILM_ID NOT IN ( " +
+                        "    SELECT FILM_ID FROM LIKES WHERE USER_ID = ? " +
+                        ") " +
+                        "ORDER BY like_counts.total_likes DESC NULLS LAST, f.FILM_ID ASC ";
 
-        List<Film> films = findMany(recFilmsQuery, similarUserId, userId);
-        if (films.isEmpty()) {
-            return List.of();
-        }
-        Set<Long> filmIds = films.stream()
-                .map(Film::getId)
-                .collect(Collectors.toSet());
-
-        Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
-        Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
-        Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByFilmIds(filmIds);
-
-        films.forEach(film -> {
-            film.setFilmGenres(genres.getOrDefault(film.getId(), Set.of()));
-            film.setLikes(likes.getOrDefault(film.getId(), Set.of()));
-            film.setReviews(reviews.getOrDefault(film.getId(), Set.of()));
-        });
-
-        return films;
+        return findMany(recFilmsQuery, similarUserId, userId);
     }
 
     private void saveFilmGenres(Film film) {
@@ -443,35 +374,25 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
     public List<Film> searchFilms(String query, String by) {
         log.debug("Выполнение поиска фильмов. Запрос: {}, by: {}", query, by);
 
-        if (query == null || query.trim().isEmpty()) {
-            throw new ValidationException("Параметр поиска 'query' не может быть пустым");
-        }
-
         String trimmedQuery = query.trim();
         String trimmedBy = (by == null || by.trim().isEmpty()) ? "title" : by.trim().toLowerCase();
-
-
-        if (!trimmedBy.equals("title") &&
-                !trimmedBy.equals("director") &&
-                !trimmedBy.equals("title,director") &&
-                !trimmedBy.equals("director,title")) {
-            throw new ValidationException("Параметр 'by' может принимать значения: title, director, title,director");
-        }
 
         boolean searchByTitle = trimmedBy.contains("title");
         boolean searchByDirector = trimmedBy.contains("director");
 
-        String searchPattern = "%" + trimmedQuery.toLowerCase() + "%";
+        String searchPattern = "%" + query.trim().toLowerCase() + "%";
 
         StringBuilder sql = new StringBuilder();
         List<Object> params = new ArrayList<>();
 
-
-        sql.append("SELECT f.*, r.RATING_NAME, ");
-        sql.append("(SELECT COUNT(*) FROM LIKES l WHERE l.FILM_ID = f.FILM_ID) as like_count ");
+        sql.append("SELECT f.*, r.RATING_NAME, COALESCE(lc.like_count, 0) as like_count ");
         sql.append("FROM FILMS f ");
         sql.append("LEFT JOIN MPA_RATINGS r ON f.RATING_ID = r.RATING_ID ");
-
+        sql.append("LEFT JOIN ( ");
+        sql.append("    SELECT FILM_ID, COUNT(*) as like_count ");
+        sql.append("    FROM LIKES ");
+        sql.append("    GROUP BY FILM_ID ");
+        sql.append(") lc ON f.FILM_ID = lc.FILM_ID ");
 
         if (searchByTitle && searchByDirector) {
             sql.append("WHERE (LOWER(f.FILM_NAME) LIKE ? ");
@@ -492,7 +413,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
             params.add(searchPattern);
         }
 
-        sql.append("ORDER BY like_count DESC");
+        sql.append("ORDER BY COALESCE(lc.like_count, 0) DESC NULLS LAST");
 
         String searchQuery = sql.toString();
         log.debug("SQL запрос поиска: {}", searchQuery);
@@ -510,31 +431,6 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
             throw new InternalServerException("Ошибка при выполнении поиска фильмов: " + e.getMessage());
         }
 
-
-        if (!films.isEmpty()) {
-            Set<Long> filmIds = films.stream()
-                    .map(Film::getId)
-                    .collect(Collectors.toSet());
-
-            try {
-                Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
-                Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
-                Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByFilmIds(filmIds);
-                Map<Long, Set<Director>> directors = getDirectorsByFilmIds(filmIds);
-
-                films.forEach(film -> {
-                    film.setFilmGenres(genres.getOrDefault(film.getId(), Set.of()));
-                    film.setLikes(likes.getOrDefault(film.getId(), Set.of()));
-                    film.setReviews(reviews.getOrDefault(film.getId(), Set.of()));
-                    film.setDirectors(directors.getOrDefault(film.getId(), Set.of()));
-                });
-            } catch (Exception e) {
-                log.error("Ошибка при загрузке дополнительных данных: {}", e.getMessage(), e);
-
-            }
-        }
-
-        log.debug("Найдено {} фильмов по запросу '{}' (by={})", films.size(), trimmedQuery, trimmedBy);
         return films;
     }
 
@@ -556,7 +452,8 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         saveFilmDirectors(film);
     }
 
-    private Set<Director> getDirectorsByFilmId(Long filmId) {
+    @Override
+    public Set<Director> getDirectorsByFilmId(Long filmId) {
         return new HashSet<>(jdbc.query(
                 FIND_DIRECTORS_BY_FILM_ID,
                 (rs, rowNum) -> new Director(
@@ -567,7 +464,8 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         ));
     }
 
-    private Map<Long, Set<Director>> getDirectorsByFilmIds(Set<Long> filmIds) {
+    @Override
+    public Map<Long, Set<Director>> getDirectorsByFilmIds(Set<Long> filmIds) {
         Map<Long, Set<Director>> result = new HashMap<>();
         if (filmIds.isEmpty()) {
             log.debug("Запрос режиссёров: список фильмов пуст");
@@ -607,25 +505,7 @@ public class FilmDbStorage extends AbstractDbStorage<Film> implements FilmStorag
         } else {
             throw new ValidationException("Некорректный параметр sortBy: " + sortBy);
         }
-
         List<Film> films = findMany(sql, directorId);
-        log.debug("Найдено {} фильмов для режиссёра id={}", films.size(), directorId);
-
-        Set<Long> filmIds = films.stream()
-                .map(Film::getId)
-                .collect(Collectors.toSet());
-
-        Map<Long, Set<Genre>> genres = genreStorage.getGenresByFilmIds(filmIds);
-        Map<Long, Set<Long>> likes = likesStorage.getLikesByFilmIds(filmIds);
-        Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByFilmIds(filmIds);
-        Map<Long, Set<Director>> directors = getDirectorsByFilmIds(filmIds);
-
-        films.forEach(film -> {
-            film.setFilmGenres(genres.getOrDefault(film.getId(), Set.of()));
-            film.setLikes(likes.getOrDefault(film.getId(), Set.of()));
-            film.setReviews(reviews.getOrDefault(film.getId(), Set.of()));
-            film.setDirectors(directors.getOrDefault(film.getId(), Set.of()));
-        });
 
         return films;
     }

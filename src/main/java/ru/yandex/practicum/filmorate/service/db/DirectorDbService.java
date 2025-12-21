@@ -53,8 +53,6 @@ public class DirectorDbService implements DirectorService {
             throw new ValidationException("ID режиссёра не может быть null");
         }
 
-        directorStorage.getDirectorById(id);
-
         directorStorage.deleteDirector(id);
     }
 

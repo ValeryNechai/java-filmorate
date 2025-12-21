@@ -7,7 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
+import ru.yandex.practicum.filmorate.model.EventType;
 import ru.yandex.practicum.filmorate.model.Feed;
+import ru.yandex.practicum.filmorate.model.Operation;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.db.FeedDbStorage;
 import ru.yandex.practicum.filmorate.storage.db.FriendDbStorage;
@@ -54,7 +56,8 @@ public class FeedDbStorageTest {
         long id1 = createdUser1.getId();
         long id2 = createdUser2.getId();
 
-        friendDbStorage.addFriend(id1, id2);
+        feedDbStorage.createFeed(id1, EventType.FRIEND, Operation.ADD, id2);
+
         Collection<Feed> feedsByUser = feedDbStorage.getFeedsByUserId(id1);
 
         assertThat(feedsByUser)

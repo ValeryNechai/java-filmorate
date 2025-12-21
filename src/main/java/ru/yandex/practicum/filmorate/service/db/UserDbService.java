@@ -5,18 +5,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.Feed;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.service.UserService;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
-import ru.yandex.practicum.filmorate.storage.db.FeedStorage;
-import ru.yandex.practicum.filmorate.storage.db.FriendStorage;
+import ru.yandex.practicum.filmorate.storage.db.*;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -25,14 +24,21 @@ public class UserDbService implements UserService {
     private final FriendStorage friendStorage;
     private final FilmStorage filmStorage;
     private final FeedStorage feedStorage;
+    private final GenreStorage genreStorage;
+    private final LikesStorage likesStorage;
+    private final ReviewStorage reviewStorage;
 
     @Autowired
     public UserDbService(UserStorage userStorage, FriendStorage friendStorage, FilmStorage filmStorage,
-                         FeedStorage feedStorage) {
+                         FeedStorage feedStorage, GenreStorage genreStorage, LikesStorage likesStorage,
+                         ReviewStorage reviewStorage) {
         this.userStorage = userStorage;
         this.friendStorage = friendStorage;
         this.filmStorage = filmStorage;
         this.feedStorage = feedStorage;
+        this.genreStorage = genreStorage;
+        this.likesStorage = likesStorage;
+        this.reviewStorage = reviewStorage;
     }
 
     @Override
@@ -60,12 +66,18 @@ public class UserDbService implements UserService {
 
     @Override
     public Collection<User> getAllUsers() {
-        return userStorage.getAllUsers();
+        Map<Long, Set<Long>> friends = friendStorage.getFriendsByAllUsers();
+
+        return userStorage.getAllUsers().stream()
+                .peek(user -> user.setFriends(friends.getOrDefault(user.getId(), Set.of())))
+                .collect(Collectors.toList());
     }
 
     @Override
     public User getUser(Long id) {
-        return userStorage.getUser(id);
+        User user = userStorage.getUser(id);
+        user.setFriends(friendStorage.getAllFriendsIdByUserId(id));
+        return user;
     }
 
     @Override
@@ -77,6 +89,7 @@ public class UserDbService implements UserService {
         }
 
         friendStorage.addFriend(id, friendId);
+        feedStorage.createFeed(id, EventType.FRIEND, Operation.ADD, friendId);
     }
 
     @Override
@@ -84,6 +97,7 @@ public class UserDbService implements UserService {
         validateFriend(id, friendId);
 
         friendStorage.deleteFriend(id, friendId);
+        feedStorage.createFeed(id, EventType.FRIEND, Operation.REMOVE, friendId);
     }
 
     @Override
@@ -110,7 +124,9 @@ public class UserDbService implements UserService {
         if (!userStorage.existsById(id)) {
             throw new NotFoundException("Пользователь с id = " + id + " не найден");
         }
-        return filmStorage.getRecommendations(id);
+        Collection<Film> recommendationFilms = filmStorage.getRecommendations(id);
+        enrichFilms(recommendationFilms);
+        return recommendationFilms;
     }
 
     @Override
@@ -170,5 +186,26 @@ public class UserDbService implements UserService {
         if (!userStorage.existsById(id) || !userStorage.existsById(friendId)) {
             throw new NotFoundException("Пользователь не найден.");
         }
+    }
+
+    private void enrichFilms(Collection<Film> films) {
+        if (films == null || films.isEmpty()) {
+            return;
+        }
+
+        Set<Long> filmIds = films.stream()
+                .map(Film::getId)
+                .collect(Collectors.toSet());
+
+        Map<Long, Set<Genre>> genres = genreStorage.getGenresByAllFilms();
+        Map<Long, Set<Long>> likes = likesStorage.getLikesByAllFilms();
+        Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByAllFilms();
+        Map<Long, Set<Director>> directors = filmStorage.getDirectorsByFilmIds(filmIds);
+        films.stream()
+                .peek(film -> film.setFilmGenres(genres.getOrDefault(film.getId(), Set.of())))
+                .peek(film -> film.setLikes(likes.getOrDefault(film.getId(), Set.of())))
+                .peek(film -> film.setReviews(reviews.getOrDefault(film.getId(), Set.of())))
+                .peek(film -> film.setDirectors(directors.getOrDefault(film.getId(), Set.of())))
+                .collect(Collectors.toList());
     }
 }

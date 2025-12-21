@@ -11,13 +11,11 @@ import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.storage.DirectorStorage;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
-import ru.yandex.practicum.filmorate.storage.db.LikesStorage;
-import ru.yandex.practicum.filmorate.storage.db.ReviewRatingsStorage;
-import ru.yandex.practicum.filmorate.storage.db.ReviewStorage;
+import ru.yandex.practicum.filmorate.storage.db.*;
 
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Primary
@@ -29,19 +27,27 @@ public class FilmDbService implements FilmService {
     private final ReviewStorage reviewStorage;
     private final ReviewRatingsStorage reviewRatingsStorage;
     private final DirectorStorage directorStorage;
+    private final FeedStorage feedStorage;
+    private final GenreStorage genreStorage;
+    private final MpaRatingStorage mpaRatingStorage;
     private static final int MAX_DESCRIPTION_LENGTH = 200;
     private static final LocalDate DECEMBER_1895 = LocalDate.of(1895, 12, 28);
+    private static final int MIN_LENGTH_FOR_SEARCH = 2;
 
     @Autowired
-    public FilmDbService(FilmStorage filmStorage, UserStorage userStorage,
-                         LikesStorage likesStorage, ReviewStorage reviewStorage,
-                         ReviewRatingsStorage reviewRatingsStorage, DirectorStorage directorStorage) {
+    public FilmDbService(FilmStorage filmStorage, UserStorage userStorage, FeedStorage feedStorage,
+                         LikesStorage likesStorage, ReviewStorage reviewStorage, GenreStorage genreStorage,
+                         ReviewRatingsStorage reviewRatingsStorage, DirectorStorage directorStorage,
+                         MpaRatingStorage mpaRatingStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
+        this.feedStorage = feedStorage;
         this.likesStorage = likesStorage;
         this.reviewStorage = reviewStorage;
+        this.genreStorage = genreStorage;
         this.reviewRatingsStorage = reviewRatingsStorage;
         this.directorStorage = directorStorage;
+        this.mpaRatingStorage = mpaRatingStorage;
     }
 
     @Override
@@ -70,7 +76,9 @@ public class FilmDbService implements FilmService {
 
     @Override
     public Collection<Film> getAllFilms() {
-        return filmStorage.getAllFilms();
+        Collection<Film> films = filmStorage.getAllFilms();
+        enrichFilms(films);
+        return films;
     }
 
     @Override
@@ -82,48 +90,56 @@ public class FilmDbService implements FilmService {
     public void addLike(Long id, Long userId) {
         validateLike(id, userId);
         likesStorage.addLike(id, userId);
+        feedStorage.createFeed(userId, EventType.LIKE, Operation.ADD, id);
     }
 
     @Override
     public void deleteLike(Long id, Long userId) {
         validateLike(id, userId);
         likesStorage.deleteLike(id, userId);
+        feedStorage.createFeed(userId, EventType.LIKE, Operation.REMOVE, id);
     }
 
     @Override
     public Collection<Film> getPopularFilms(int count, Integer genreId, Integer year) {
-        return filmStorage.getPopularFilms(count, genreId, year);
+        Collection<Film> popularFilms = filmStorage.getPopularFilms(count, genreId, year);
+        enrichFilms(popularFilms);
+        return popularFilms;
     }
 
     @Override
     public Collection<Film> getCommonFilms(Long userId, Long friendId) {
-        return filmStorage.getCommonFilms(userId, friendId);
+        Collection<Film> commonFilms = filmStorage.getCommonFilms(userId, friendId);
+        enrichFilms(commonFilms);
+        return commonFilms;
     }
 
     @Override
     public Collection<Genre> getAllGenres() {
-        return filmStorage.getAllGenres();
+        return genreStorage.getAllGenres();
     }
 
     @Override
     public Genre getGenreById(int id) {
-        return filmStorage.getGenreById(id);
+        return genreStorage.getGenreById(id);
     }
 
     @Override
     public Collection<MpaRating> getAllMpa() {
-        return filmStorage.getAllMpa();
+        return mpaRatingStorage.getAllMpa();
     }
 
     @Override
     public MpaRating getMpaById(int id) {
-        return filmStorage.getMpaById(id);
+        return mpaRatingStorage.getMpaById(id);
     }
 
     @Override
     public Review createReview(Review review) {
         validateReview(review);
-        return reviewStorage.createReview(review);
+        Review newReview = reviewStorage.createReview(review);
+        feedStorage.createFeed(review.getUserId(), EventType.REVIEW, Operation.ADD, review.getReviewId());
+        return newReview;
     }
 
     @Override
@@ -132,7 +148,14 @@ public class FilmDbService implements FilmService {
             throw new NotFoundException("Отзыв с id = " + newReview.getReviewId() + " не найден.");
         }
         validateReview(newReview);
-        return reviewStorage.updateReview(newReview);
+        Review updateReview = reviewStorage.updateReview(newReview);
+        feedStorage.createFeed(
+                getReviewById(newReview.getReviewId()).getUserId(),
+                EventType.REVIEW,
+                Operation.UPDATE,
+                newReview.getReviewId()
+        );
+        return updateReview;
     }
 
     @Override
@@ -140,7 +163,9 @@ public class FilmDbService implements FilmService {
         if (!reviewStorage.existsById(reviewId)) {
             throw new NotFoundException("Отзыв с id = " + reviewId + " не найден.");
         }
-        validateReview(reviewStorage.getReviewById(reviewId));
+        Review review = getReviewById(reviewId);
+        feedStorage.createFeed(review.getUserId(), EventType.REVIEW, Operation.REMOVE, review.getReviewId());
+
         reviewStorage.deleteReview(reviewId);
     }
 
@@ -277,14 +302,25 @@ public class FilmDbService implements FilmService {
             throw new ValidationException("Параметр поиска 'query' не может быть пустым");
         }
         query = query.trim();
-        if (query.length() < 2) {
+        if (query.length() < MIN_LENGTH_FOR_SEARCH) {
             log.warn("Слишком короткий запрос для поиска: '{}'", query);
             throw new ValidationException("Запрос для поиска должен содержать не менее 2 символов");
         }
 
+        String trimmedBy = (by == null || by.trim().isEmpty()) ? "title" : by.trim().toLowerCase();
+
+        if (!trimmedBy.equals("title") &&
+                !trimmedBy.equals("director") &&
+                !trimmedBy.equals("title,director") &&
+                !trimmedBy.equals("director,title")) {
+            throw new ValidationException("Параметр 'by' может принимать значения: title, director, title,director");
+        }
+
         log.info("Выполнение поиска фильмов по запросу: '{}'", query);
         List<Film> result = filmStorage.searchFilms(query, by);
+        enrichFilms(result);
         log.info("Найдено {} фильмов по запросу '{}'", result.size(), query);
+
         return result;
     }
 
@@ -295,6 +331,30 @@ public class FilmDbService implements FilmService {
         if (sortBy == null || (!sortBy.equals("year") && !sortBy.equals("likes"))) {
             throw new ValidationException("sortBy должен быть 'year' или 'likes'");
         }
-        return filmStorage.getFilmsByDirector(directorId, sortBy);
+        Collection<Film> films = filmStorage.getFilmsByDirector(directorId, sortBy);
+        enrichFilms(films);
+
+        return films;
+    }
+
+    private void enrichFilms(Collection<Film> films) {
+        if (films == null || films.isEmpty()) {
+            return;
+        }
+
+        Set<Long> filmIds = films.stream()
+                .map(Film::getId)
+                .collect(Collectors.toSet());
+
+        Map<Long, Set<Genre>> genres = genreStorage.getGenresByAllFilms();
+        Map<Long, Set<Long>> likes = likesStorage.getLikesByAllFilms();
+        Map<Long, Set<Long>> reviews = reviewStorage.getReviewsByAllFilms();
+        Map<Long, Set<Director>> directors = filmStorage.getDirectorsByFilmIds(filmIds);
+        films.stream()
+                .peek(film -> film.setFilmGenres(genres.getOrDefault(film.getId(), Set.of())))
+                .peek(film -> film.setLikes(likes.getOrDefault(film.getId(), Set.of())))
+                .peek(film -> film.setReviews(reviews.getOrDefault(film.getId(), Set.of())))
+                .peek(film -> film.setDirectors(directors.getOrDefault(film.getId(), Set.of())))
+                .collect(Collectors.toList());
     }
 }

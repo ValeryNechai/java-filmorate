@@ -6,8 +6,6 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.stereotype.Repository;
-import ru.yandex.practicum.filmorate.model.EventType;
-import ru.yandex.practicum.filmorate.model.Operation;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,7 +17,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class LikesDbStorage implements LikesStorage {
     private final JdbcTemplate jdbc;
-    private final FeedStorage feedStorage;
     private static final String FIND_LIKES_BY_FILM_ID_QUERY = "SELECT USER_ID FROM LIKES WHERE FILM_ID = ?";
     private static final String ADD_LIKE_QUERY = "INSERT INTO LIKES (USER_ID, FILM_ID) VALUES (?, ?)";
     private static final String DELETE_LIKE_QUERY = "DELETE FROM LIKES WHERE USER_ID = ? AND FILM_ID = ?";
@@ -39,7 +36,6 @@ public class LikesDbStorage implements LikesStorage {
             jdbc.update(ADD_LIKE_QUERY, userId, filmId);
             log.debug("Лайк успешно добавлен.");
         }
-        feedStorage.createFeed(userId, EventType.LIKE, Operation.ADD, filmId);
     }
 
     @Override
@@ -50,7 +46,6 @@ public class LikesDbStorage implements LikesStorage {
         } else {
             log.warn("Попытка удалить несуществующий лайк.");
         }
-        feedStorage.createFeed(userId, EventType.LIKE, Operation.REMOVE, filmId);
     }
 
     @Override

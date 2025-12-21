@@ -103,17 +103,4 @@ public class FilmByDirectorDbStorageTest {
                         "Матрица"
                 );
     }
-
-    @Test
-    void shouldAttachDirectorToFilms() {
-        Collection<Film> films =
-                filmDbStorage.getFilmsByDirector(director.getId(), "year");
-
-        Film film = films.iterator().next();
-
-        assertThat(film.getDirectors())
-                .hasSize(1)
-                .extracting(Director::getName)
-                .containsExactly("Лана Вачовски");
-    }
 }

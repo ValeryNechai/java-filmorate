@@ -11,19 +11,14 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Component
 @Slf4j
 public class UserDbStorage extends AbstractDbStorage<User> implements UserStorage {
-    private final FriendStorage friendStorage;
 
     @Autowired
-    public UserDbStorage(JdbcTemplate jdbc, RowMapper<User> mapper, FriendStorage friendStorage) {
+    public UserDbStorage(JdbcTemplate jdbc, RowMapper<User> mapper) {
         super(jdbc, mapper);
-        this.friendStorage = friendStorage;
     }
 
     @Override
@@ -93,21 +88,14 @@ public class UserDbStorage extends AbstractDbStorage<User> implements UserStorag
     public Collection<User> getAllUsers() {
         String findAllUsersQuery = "SELECT * FROM USERS ORDER BY USER_ID";
 
-        Map<Long, Set<Long>> friends = friendStorage.getFriendsByAllUsers();
-
-        return findMany(findAllUsersQuery).stream()
-                .peek(user -> user.setFriends(friends.getOrDefault(user.getId(), Set.of())))
-                .collect(Collectors.toList());
+        return findMany(findAllUsersQuery);
     }
 
     @Override
     public User getUser(Long id) {
         String findUserQuery = "SELECT * FROM USERS WHERE USER_ID = ?";
-        User user = findOne(findUserQuery, id)
+        return findOne(findUserQuery, id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id = " + id + " не найден"));
-        user.setFriends(friendStorage.getAllFriendsIdByUserId(id));
-
-        return user;
     }
 
     @Override

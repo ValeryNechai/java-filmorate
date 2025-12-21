@@ -7,8 +7,6 @@ import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.model.EventType;
-import ru.yandex.practicum.filmorate.model.Operation;
 import ru.yandex.practicum.filmorate.model.Review;
 
 import java.sql.ResultSet;
@@ -19,7 +17,6 @@ import java.util.stream.Collectors;
 @Repository
 @Slf4j
 public class ReviewDbStorage extends AbstractDbStorage<Review> implements ReviewStorage {
-    private final FeedStorage feedStorage;
     private static final String INSERT_REVIEW_QUERY =
             "INSERT INTO REVIEWS (CONTENT, IS_POSITIVE, USER_ID, FILM_ID) " +
                     "VALUES (?, ?, ?, ?)";
@@ -34,9 +31,8 @@ public class ReviewDbStorage extends AbstractDbStorage<Review> implements Review
             "SELECT * FROM REVIEWS ORDER BY USEFUL DESC LIMIT ?";
     private static final String FIND_REVIEWS_ID_BY_ALL_FILMS_QUERY = "SELECT REVIEW_ID, FILM_ID FROM REVIEWS";
 
-    public ReviewDbStorage(JdbcTemplate jdbc, RowMapper<Review> mapper, FeedStorage feedStorage) {
+    public ReviewDbStorage(JdbcTemplate jdbc, RowMapper<Review> mapper) {
         super(jdbc, mapper);
-        this.feedStorage = feedStorage;
     }
 
     @Override
@@ -49,7 +45,6 @@ public class ReviewDbStorage extends AbstractDbStorage<Review> implements Review
                 review.getFilmId()
         );
         review.setReviewId(id);
-        feedStorage.createFeed(review.getUserId(), EventType.REVIEW, Operation.ADD, review.getReviewId());
         log.debug("Отзыв успешно добавлен в базу данных.");
 
         return getReviewById(review.getReviewId());
@@ -63,12 +58,7 @@ public class ReviewDbStorage extends AbstractDbStorage<Review> implements Review
                 newReview.getIsPositive(),
                 newReview.getReviewId()
         );
-        feedStorage.createFeed(
-                getReviewById(newReview.getReviewId()).getUserId(),
-                EventType.REVIEW,
-                Operation.UPDATE,
-                newReview.getReviewId()
-        );
+
         log.debug("Отзыв успешно обновлен в базе данных.");
 
         return getReviewById(newReview.getReviewId());
@@ -76,12 +66,10 @@ public class ReviewDbStorage extends AbstractDbStorage<Review> implements Review
 
     @Override
     public void deleteReview(Long reviewId) {
-        Review review = getReviewById(reviewId);
         update(
                 DELETE_REVIEW_QUERY,
                 reviewId
         );
-        feedStorage.createFeed(review.getUserId(), EventType.REVIEW, Operation.REMOVE, review.getReviewId());
         log.debug("Отзыв успешно удален из базы данных.");
     }
 
